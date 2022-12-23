@@ -114,6 +114,7 @@ class IpmEmulator():
             rdata = self.sport.read(128)
             msg = rdata.decode('utf-8')
 
+            # On receiipt of 'x', quit cycling and exit
             if msg == 'x':
                 return
 
@@ -162,8 +163,8 @@ def main():
     vports = VirtualPorts()
 
     instport = vports.start_ports()
-    print("Emulator connecting to virtual serial port: %s", (instport))
-    print("User clients connect to virtual serial port: %s",
+    print("Emulator connecting to virtual serial port:", (instport))
+    print("User clients connect to virtual serial port:",
           (vports.get_user_port()))
 
     # Instantiate iPM emulator and connect to instport.
