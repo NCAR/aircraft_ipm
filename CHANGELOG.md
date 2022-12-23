@@ -8,3 +8,5 @@ Changelog for iPM code
 - Initial commit - just documentation and github setup
 
 - Implement simple iPM emulator.
+
+- Begin implementing iPm control program (not complete)

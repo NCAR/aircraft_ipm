@@ -10,6 +10,11 @@
 ##########################################################################
 """
 from collections import namedtuple
+import numpy
+
+# I am playing with using a namedtuple to hold the components of
+# the reported response. Still not sure this is better than a
+# dictionary...
 
 # Some sample data - to be refined as we go
 TEST_DATA = b'0123456789abcdefghijklmn'  # sample 24 byte data
@@ -31,4 +36,17 @@ sequence = [
     Command('MEASURE?', '34\n', MEASURE_DATA),  # Device Measurement
     Command('STATUS?', '12\n', STATUS_DATA),    # Device Status
     Command('RECORD?', '68\n', RECORD_DATA),    # Device Statistics
+]
+
+# Tuple to store byte responses to queries
+Data = namedtuple('Data', "len varName description units scale val")
+
+measure = [
+    Data(2, 'FREQ', 'AC Power Frequency', 'Hz', '0.1', numpy.nan),
+    Data(2, 'reserved', 'unused', '', '1', numpy.nan),
+    Data(2, 'T', 'Temperature', 'C', '0.1', numpy.nan),
+    Data(2, 'VRMSA', 'AC Voltage RMS Phase A', 'V', '0.1', numpy.nan),
+    Data(2, 'VRMSB', 'AC Voltage RMS Phase B', 'V', '0.1', numpy.nan),
+    Data(2, 'VRMSC', 'AC Voltage RMS Phase C', 'V', '0.1', numpy.nan),
+    Data(2, 'VPKA', 'AC Voltage Peak Phase A', 'V', '0.001', numpy.nan)
 ]
