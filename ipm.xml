@@ -1,0 +1,178 @@
+<?xml version="1.0" encoding="iso-8859-1"?>
+
+<!-- Copyright 2005 UCAR, NCAR, All Rights Reserved -->
+
+<project
+    xmlns="http://www.eol.ucar.edu/nidas"
+    xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+    xsi:schemaLocation="http://www.eol.ucar.edu/nidas nidas.xsd"
+    name="RAF_Lab"
+    system="Lab_N600"
+    version="$LastChangedRevision: 2514 $"
+    >
+
+<sensorcatalog>
+    <!-- All but one sensor has been removed from the sensor catalog for this minimal example -->
+    <sensor ID="iPM_1phase" class="UDPSocketSensor" devicename="usock::30100" suffix="_iPM1">
+        <sample id="1" rate="1" scanfFormat="MEASURE,%f,%f,%f,%f,%f,%f,%f">
+            <variable longname="AC Power Frequency" name="FREQ" units="Hz"/>
+            <variable longname="AC Voltage, RMS Phase A" name="VRMSA" units="V"/>
+            <variable longname="AC Voltage, Peak Phase A" name="VPKA" units="V"/>
+            <variable longname="AC Voltage, DC Component Phase A" name="VDCA" units="V"/>
+            <variable longname="AC Phase Angle Phase A" name="PHA" units="deg_C"/>
+            <variable longname="AC Voltage THD Phase A" name="THDA" units="%"/>
+            <variable longname="Power OK" name="POWEROK" units=""/>
+        </sample>
+        <sample id="2" rate="1" scanfFormat="STATUS,%f,%f,%f">
+            <variable longname="Operational State" name="OPSTATE" units=""/>
+            <variable longname="Power Trip Flags, performance exceeds limits" name="TRIPFLAGS" units=""/>
+            <variable longname="Power Caution Flags, marginal performance" name="CAUTIONFLAGS" units=""/>
+        </sample>
+        <sample id="3" rate="1" scanfFormat="RECORD,%f,%f,%f,%f,%f,%f,%f,%f,%f,%f,%f,%f,%f,%f">
+            <variable longname="Maximum AC Power Frequency" name="FREQMAX" units="Hz"/>
+            <variable longname="Minimum AC Power Frequency" name="FREQMIN" units="Hz"/>
+            <variable longname="Maximum AC Voltage, RMS Phase A" name="VRMSMAXA" units="V"/>
+            <variable longname="Minimum AC Voltage, RMS Phase A" name="VRMSMINA" units="V"/>
+            <variable longname="Maximum AC Voltage, Peak Phase A" name="VPKMAXA" units="V"/>
+            <variable longname="Minimum AC Voltage, Peak Phase A" name="VPKMINA" units="V"/>
+            <variable longname="Maximum AC Voltage, DC Component Phase A" name="VDCMAXA" units="V"/>
+            <variable longname="Minimum AC Voltage, DC Component Phase A" name="VDCMINA" units="V"/>
+            <variable longname="Maximum AC Phase Angle Phase A" name="PHMAXA" units="deg_C"/>
+            <variable longname="Minimum AC Phase Angle Phase A" name="PHMINA" units="deg_C"/>
+            <variable longname="Maximum AC Voltage THD Phase A" name="THDMAXA" units="%"/>
+            <variable longname="Minimum AC Voltage THD Phase A" name="THDMINA" units="%"/>
+            <variable longname="Elapsed Time since power-up" name="TIME" units="ms"/>
+            <variable longname="Event Type" name="EVTYPE" units=""/>
+        </sample>
+    </sensor>
+    <sensor ID="iPM_3phase" class="UDPSocketSensor" devicename="usock::30101" suffix="_iPM3">
+        <sample id="1" rate="1" scanfFormat="MEASURE,%f,%f,%f,%f,%f,%f,%f,%f,%f,%f,%f,%f,%f,%f,%f,%f,%f">
+            <variable longname="AC Power Frequency" name="FREQ" units="Hz"/>
+            <variable longname="AC Voltage, RMS Phase A" name="VRMSA" units="V"/>
+            <variable longname="AC Voltage, RMS Phase B" name="VRMSB" units="V"/>
+            <variable longname="AC Voltage, RMS Phase C" name="VRMSC" units="V"/>
+            <variable longname="AC Voltage, Peak Phase A" name="VPKA" units="V"/>
+            <variable longname="AC Voltage, Peak Phase B" name="VPKB" units="V"/>
+            <variable longname="AC Voltage, Peak Phase C" name="VPKC" units="V"/>
+            <variable longname="AC Voltage, DC Component Phase A" name="VDCA" units="V"/>
+            <variable longname="AC Voltage, DC Component Phase B" name="VDCB" units="V"/>
+            <variable longname="AC Voltage, DC Component Phase C" name="VDCC" units="V"/>
+            <variable longname="AC Phase Angle Phase A" name="PHA" units="deg_C"/>
+            <variable longname="AC Phase Angle Phase B" name="PHB" units="deg_C"/>
+            <variable longname="AC Phase Angle Phase C" name="PHC" units="deg_C"/>
+            <variable longname="AC Voltage THD Phase A" name="THDA" units="%"/>
+            <variable longname="AC Voltage THD Phase B" name="THDB" units="%"/>
+            <variable longname="AC Voltage THD Phase C" name="THDC" units="%"/>
+            <variable longname="Power OK" name="POWEROK" units=""/>
+        </sample>
+        <sample id="2" rate="1" scanfFormat="STATUS,%f,%f,%f">
+            <variable longname="Operational State" name="OPSTATE" units=""/>
+            <variable longname="Power Trip Flags, performance exceeds limits" name="TRIPFLAGS" units=""/>
+            <variable longname="Power Caution Flags, marginal performance" name="CAUTIONFLAGS" units=""/>
+        </sample>
+        <sample id="3" rate="1" scanfFormat="RECORD,%f,%f,%f,%f,%f,%f,%f,%f,%f,%f,%f,%f,%f,%f,%f,%f,%f,%f,%f,%f,%f,%f,%f,%f,%f,%f,%f,%f,%f,%f,%f,%f,%f,%f">
+            <variable longname="Maximum AC Power Frequency" name="FREQMAX" units="Hz"/>
+            <variable longname="Minimum AC Power Frequency" name="FREQMIN" units="Hz"/>
+            <variable longname="Maximum AC Voltage, RMS Phase A" name="VRMSMAXA" units="V"/>
+            <variable longname="Maximum AC Voltage, RMS Phase B" name="VRMSMAXB" units="V"/>
+            <variable longname="Maximum AC Voltage, RMS Phase C" name="VRMSMAXC" units="V"/>
+            <variable longname="Minimum AC Voltage, RMS Phase A" name="VRMSMINA" units="V"/>
+            <variable longname="Minimum AC Voltage, RMS Phase B" name="VRMSMINB" units="V"/>
+            <variable longname="Minimum AC Voltage, RMS Phase C" name="VRMSMINC" units="V"/>
+            <variable longname="Maximum AC Voltage, Peak Phase A" name="VPKMAXA" units="V"/>
+            <variable longname="Maximum AC Voltage, Peak Phase B" name="VPKMAXB" units="V"/>
+            <variable longname="Maximum AC Voltage, Peak Phase C" name="VPKMAXC" units="V"/>
+            <variable longname="Minimum AC Voltage, Peak Phase A" name="VPKMINA" units="V"/>
+            <variable longname="Minimum AC Voltage, Peak Phase B" name="VPKMINB" units="V"/>
+            <variable longname="Minimum AC Voltage, Peak Phase C" name="VPKMINC" units="V"/>
+            <variable longname="Maximum AC Voltage, DC Component Phase A" name="VDCMAXA" units="V"/>
+            <variable longname="Maximum AC Voltage, DC Component Phase B" name="VDCMAXB" units="V"/>
+            <variable longname="Maximum AC Voltage, DC Component Phase C" name="VDCMAXC" units="V"/>
+            <variable longname="Minimum AC Voltage, DC Component Phase A" name="VDCMINA" units="V"/>
+            <variable longname="Minimum AC Voltage, DC Component Phase A" name="VDCMINB" units="V"/>
+            <variable longname="Minimum AC Voltage, DC Component Phase A" name="VDCMINC" units="V"/>
+            <variable longname="Maximum AC Phase Angle Phase A" name="PHMAXA" units="deg_C"/>
+            <variable longname="Maximum AC Phase Angle Phase B" name="PHMAXB" units="deg_C"/>
+            <variable longname="Maximum AC Phase Angle Phase C" name="PHMAXC" units="deg_C"/>
+            <variable longname="Minimum AC Phase Angle Phase A" name="PHMINA" units="deg_C"/>
+            <variable longname="Minimum AC Phase Angle Phase B" name="PHMINB" units="deg_C"/>
+            <variable longname="Minimum AC Phase Angle Phase C" name="PHMINC" units="deg_C"/>
+            <variable longname="Maximum AC Voltage THD Phase A" name="THDMAXA" units="%"/>
+            <variable longname="Maximum AC Voltage THD Phase B" name="THDMAXB" units="%"/>
+            <variable longname="Maximum AC Voltage THD Phase C" name="THDMAXC" units="%"/>
+            <variable longname="Minimum AC Voltage THD Phase A" name="THDMINA" units="%"/>
+            <variable longname="Minimum AC Voltage THD Phase B" name="THDMINB" units="%"/>
+            <variable longname="Minimum AC Voltage THD Phase C" name="THDMINC" units="%"/>
+            <variable longname="Elapsed Time since power-up" name="TIME" units="ms"/>
+            <variable longname="Event Type" name="EVTYPE" units=""/>
+        </sample>
+    </sensor>
+
+</sensorcatalog>
+
+<site name="Lab_N600" class="raf.Aircraft">
+    <parameter name="tailNumber" value="N600" type="string"/>
+
+    <server statusAddr="sock:127.0.0.1:30001">
+        <service class="XMLConfigService">
+            <output>
+                <socket type="mcaccept"/>
+            </output>
+        </service>
+        <service class="XMLConfigAllService">
+            <output>
+                <socket type="mcaccept"/>
+            </output>
+        </service>
+        <service class="RawSampleService">
+            <!-- input from every DSM on this aircraft that has
+                 a socket output of type RawSampleOutputStream -->
+            <input class="RawSampleInputStream">
+                <socket type="mcaccept"/>
+            </input>
+            <processor class="SampleArchiver">
+                <output class="SampleOutputStream">
+                    <fileset dir="${RAW_DATA_DIR}/${PROJECT}"
+                        file="%Y%m%d_%H%M%S_${FLIGHT}.ads"
+                        length="0"/>
+                </output>
+                <output class="SampleOutputStream">
+                    <socket type="server" port="30000"/>
+                </output>
+            </processor>
+            <processor class="raf.SyncRecordGenerator">
+                <output class="SampleOutputStream">
+                    <socket type="server" port="30001"/>
+                </output>
+            </processor>
+        </service>
+    </server>
+
+    <dsm id="305" location="dsm305" name="dsm305" derivedData="sock::31000" statusAddr="sock:192.168.84.2:30001">
+      <sensor ID="NAIiPM" class="raf.UDPiPMSensor" devicename="/dev/ttyxx" id="6100">
+          <parameter name="devicename" type="string" value="/dev/ttyxx"/>
+          <parameter name="port" type="int" value="30220"/>
+          <parameter name="measurerate" type="int" value="1"/>
+          <parameter name="recordperiod" type="int" value="10"/>
+          <parameter name="baudrate" type="int" value="115200"/>
+          <parameter name="num_addr" type="int" value="3"/>
+          <parameter name="dev0" type="string" value="1,5,30101"/>  <!-- addr, procqueries, port -->
+          <parameter name="dev1" type="string" value="1,5,30102"/>  <!-- addr, procqueries, port -->
+          <parameter name="dev2" type="string" value="3,7,30103"/>  <!-- addr, procqueries, port -->
+      </sensor>
+      <output class="RawSampleOutputStream">
+        <socket type="mcrequest"/>
+      </output>
+    </dsm>
+
+    <dsm id="99" location="acserver" name="acserver" derivedData="sock::31000" statusAddr="sock:192.168.84.2:30001">
+      <sensor IDREF="iPM_3phase" devicename="usock::30101" id="850" suffix="_iPM1"/>
+      <sensor IDREF="iPM_1phase" devicename="usock::30102" id="860" suffix="_iPM2"/>
+      <sensor IDREF="iPM_1phase" devicename="usock::30103" id="870" suffix="_iPM3"/>
+      <output class="RawSampleOutputStream">
+        <socket type="mcrequest"/>
+      </output>
+    </dsm>
+
+</site>
+</project>
