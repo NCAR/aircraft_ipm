@@ -13,7 +13,7 @@
 
 <sensorcatalog>
     <!-- All but one sensor has been removed from the sensor catalog for this minimal example -->
-    <sensor ID="iPM_1phase" class="UDPSocketSensor" devicename="usock::30100" suffix="_iPM1">
+    <sensor ID="iPM_1phase" class="raf.UDPiPMSensor" devicename="usock::30100" suffix="_iPM1">
         <sample id="1" rate="1" scanfFormat="MEASURE,%f,%f,%f,%f,%f,%f,%f">
             <variable longname="AC Power Frequency" name="FREQ" units="Hz"/>
             <variable longname="AC Voltage, RMS Phase A" name="VRMSA" units="V"/>
@@ -45,7 +45,7 @@
             <variable longname="Event Type" name="EVTYPE" units=""/>
         </sample>
     </sensor>
-    <sensor ID="iPM_3phase" class="UDPSocketSensor" devicename="usock::30101" suffix="_iPM3">
+    <sensor ID="iPM_3phase" class="raf.UDPiPMSensor" devicename="usock::30101" suffix="_iPM3">
         <sample id="1" rate="1" scanfFormat="MEASURE,%f,%f,%f,%f,%f,%f,%f,%f,%f,%f,%f,%f,%f,%f,%f,%f,%f">
             <variable longname="AC Power Frequency" name="FREQ" units="Hz"/>
             <variable longname="AC Voltage, RMS Phase A" name="VRMSA" units="V"/>
@@ -166,9 +166,9 @@
     </dsm>
 
     <dsm id="99" location="acserver" name="acserver" derivedData="sock::31000" statusAddr="sock:192.168.84.2:30001">
-      <sensor IDREF="iPM_3phase" devicename="usock::30101" id="850" suffix="_iPM1"/>
+      <!--sensor IDREF="iPM_3phase" devicename="usock::30101" id="850" suffix="_iPM1"/>
       <sensor IDREF="iPM_1phase" devicename="usock::30102" id="860" suffix="_iPM2"/>
-      <sensor IDREF="iPM_1phase" devicename="usock::30103" id="870" suffix="_iPM3"/>
+      <sensor IDREF="iPM_1phase" devicename="usock::30103" id="870" suffix="_iPM3"/-->
       <output class="RawSampleOutputStream">
         <socket type="mcrequest"/>
       </output>
