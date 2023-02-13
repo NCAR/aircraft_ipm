@@ -3,12 +3,6 @@
  ********************************************************************
 */
 
-#include <unistd.h>
-#include <iostream>
-#include <string.h>
-#include <sys/socket.h>
-#include <arpa/inet.h>
-
 #include "naiipm.h"
 
 static naiipm ipm;
@@ -86,6 +80,16 @@ int main(int argc, char * argv[])
             fprintf(stderr, "Device failed to initialize\n");
         }
     }
+
+    // TBD: Get ip address and port from xml
+    ipm.open_udp("172.16.47.154", 30101);
+
+    // Send a message to the server
+    const char *buffer = "MEASURE,20230201T00:00:00,11,11,99,99,99,99,99\r\n";
+    ipm.send_udp(buffer);
+
+    // Close socket descriptor
+    ipm.close_udp();
 
     ipm.close_port(fd);
     exit(1);

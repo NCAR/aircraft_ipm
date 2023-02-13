@@ -3,8 +3,6 @@
  ********************************************************************
 */
 
-#include <iostream>
-#include <unistd.h>
 #include <fcntl.h>
 #include <termios.h>
 
@@ -74,6 +72,33 @@ int naiipm::open_port(const char *port)
 void naiipm::close_port(int fd)
 {
     close(fd);
+}
+
+// Create UDP socket to send packets to nidas
+void naiipm::open_udp(const char *ip, int port)
+{
+    if (sock < 0)
+    {
+        std::cout << "Socket creation failed" << std::endl;
+        exit(EXIT_FAILURE);
+    }
+    memset(&servaddr, 0, sizeof(servaddr));
+    servaddr.sin_family = AF_INET;
+    servaddr.sin_port = htons(30101);
+    servaddr.sin_addr.s_addr = inet_addr(ip);
+}
+
+// Send a UDP message to nidas
+void naiipm::send_udp(const char *buffer)
+{
+    std::cout << "sending UDP string " << buffer << std::endl;
+    sendto(sock, (const char *)buffer, strlen(buffer), MSG_CONFIRM, (const struct sockaddr *) &servaddr, sizeof(servaddr));
+}
+
+// Close UDP port
+void naiipm::close_udp()
+{
+    close(sock);
 }
 
 // read response from iPM

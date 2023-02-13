@@ -4,8 +4,13 @@
 */
 
 #include <cstdlib>
-#include <string>
 #include <map>
+#include <sys/socket.h>
+#include <arpa/inet.h>
+#include <string.h>
+#include <unistd.h>
+#include <iostream>
+
 
 /**
  * Class to initialize and control North Atlantic Industries
@@ -22,6 +27,9 @@ class naiipm
 
         int open_port(const char *port);
         void close_port(int fd);
+        void open_udp(const char *ip, int port);
+        void send_udp(const char *buffer);
+        void close_udp();
         std::string get_response(int fd, int len);
         bool send_command(int fd, char *msg);
 
@@ -34,6 +42,11 @@ class naiipm
     protected:
         const char* _port;
         bool _interactive = false;
+        struct sockaddr_in servaddr;
+        //  AF_INET for IPv4/ AF_INET6 for IPv6
+        //  SOCK_STREAM for TCP / SOCK_DGRAM for UDP
+        int sock = socket(AF_INET, SOCK_DGRAM, 0);
+
         // Map stores message, expected response
         std::map<std::string, std::string>ipm_commands = {
             { "OFF",        "OK\n"},       // Turn Devive OFF
