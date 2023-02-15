@@ -12,10 +12,11 @@ void processArgs(int argc, char *argv[])
     int opt;
     int errflag = 0, nopt = 0;
     bool p = false;
+    bool n = false;
 
     // Options between colons require an argument
     // Options after second colon do not.
-    while((opt = getopt(argc, argv, ":p:i")) != -1)
+    while((opt = getopt(argc, argv, ":p:n:i")) != -1)
     {
         nopt++;
         switch(opt)
@@ -23,6 +24,10 @@ void processArgs(int argc, char *argv[])
             case 'p':  // Port the iPM is connected to
                 p = true;
                 ipm.setPort(optarg);
+                break;
+            case 'n':  // Number of addresses in use on iPM
+                n = true;
+                ipm.setNumAddr(optarg);
                 break;
             case 'i':  // Run in interactive (menu) mode
                 ipm.setInteractive();
@@ -39,10 +44,11 @@ void processArgs(int argc, char *argv[])
         }
     }
     std::cout << ipm.Port() << std::endl;
-    if (errflag or not nopt or not p)
+    if (errflag or not nopt or not p or not n)
     {
         std::cerr << "Usage:" << std::endl;
         std::cerr << "\t-p <port>\tport iPM is connected to" << std::endl;
+        std::cerr << "\t-n <num_addr>\tnumber of active addresses on iPM" << std::endl;
         std::cerr << "\t-i\tRun in interactive mode" << std::endl;
         exit(1);
     }
@@ -57,6 +63,12 @@ bool init_device(int fd)
 
     msg = "RESET";
     if(not ipm.send_command(fd, (char *)msg)) { return false; }
+
+    std::cout << "This ipm has " << ipm.numAddr() << " active addresses" << std::endl;
+    for (int i=0; i < atoi(ipm.numAddr()); i++)
+    {
+        std::cout << "Getting info for address " << i << std::endl;
+    }
 
     return true;
 }

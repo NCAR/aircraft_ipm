@@ -36,11 +36,15 @@ class naiipm
         const char* Port()      { return _port; }
         void setPort(const char port[])   { _port = port; }
 
+        const char* numAddr()      { return _numaddr; }
+        void setNumAddr(const char numaddr[])   { _numaddr = numaddr; }
+
         bool Interactive()    { return _interactive; };
         void setInteractive() {_interactive = true; }
 
     protected:
         const char* _port;
+        const char* _numaddr;
         bool _interactive = false;
         struct sockaddr_in servaddr;
         //  AF_INET for IPv4/ AF_INET6 for IPv6
