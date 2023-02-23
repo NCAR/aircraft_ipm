@@ -31,7 +31,7 @@ class naiipm
         void send_udp(const char *buffer);
         void close_udp();
         std::string get_response(int fd, int len);
-        bool send_command(int fd, char *msg);
+        bool send_command(int fd, std::string msg, std::string msgarg = "");
 
         const char* Port()      { return _port; }
         void setPort(const char port[])   { _port = port; }

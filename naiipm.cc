@@ -21,7 +21,7 @@ int naiipm::open_port(const char *port)
     int fd; // file description for the serial port
     struct termios port_settings; // structure to store the port settings in
 
-    fd = open(Port(), O_RDWR | O_NOCTTY); // read/write
+    fd = open(Port(), O_RDWR | O_NOCTTY | O_NONBLOCK); // read/write
 
     if (fd == -1) // if open is unsuccessful
     {
@@ -60,8 +60,6 @@ int naiipm::open_port(const char *port)
         {
             std::cout << "Failed to set serial attributes" << std::endl;
         }
-
-        fcntl(fd, F_SETFL, 0); // set non-blocking
 
         std::cout << "port " << port << " is open." << std::endl;
     }
@@ -109,10 +107,8 @@ std::string naiipm::get_response(int fd, int len)
     char *l = &line[0];
     while (true)
     {
-        std::cout << "In get_response loop" << std::endl;
         char c;
         int ret = read(fd, &c, 1);
-        std::cout << "read returned " << ret << " bytes" << std::endl;
         if (ret > 0)  // successful read
         {
             std::cout << c << std::endl;
@@ -129,7 +125,8 @@ std::string naiipm::get_response(int fd, int len)
             {
                 break;
             }
-        } else {
+        } else if (ret != -1)  // read did not return timeout
+        {
             std::cout << "unknown response " << c << std::endl;
         }
 
@@ -147,14 +144,21 @@ std::string naiipm::get_response(int fd, int len)
 }
 
 // send command to iPM and verify response
-bool naiipm::send_command(int fd, char *msg)
+bool naiipm::send_command(int fd, std::string msg, std::string msgarg)
 {
+    std::cout << "Got message " << msg << std::endl;
     // Find expected response for this message
     auto response = ipm_commands.find(msg);
     std::string expected_response = response->second;
+    std::cout << "Expect response '" << expected_response << "'" << std::endl;
 
     // Send message to ipm
-    write(fd, msg, std::string((char*)msg).length());
+    if (msgarg != "")
+    {
+        msg.append(' ' + msgarg);
+    }
+    std::cout << "Sending message " << msg << std::endl;
+    write(fd, msg.c_str(), msg.length());
     if (tcdrain(fd) == -1)  // wait for write to complete
     {
         std::cout << errno << std::endl;
