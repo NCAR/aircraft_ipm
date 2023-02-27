@@ -16,6 +16,8 @@ void processArgs(int argc, char *argv[])
     bool r = false;
     bool b = false;
     bool n = false;
+    char c = '9';
+    int nInfo = 0;
 
     // Options between colons require an argument
     // Options after second colon do not.
@@ -49,6 +51,8 @@ void processArgs(int argc, char *argv[])
             case '5':
             case '6':
             case '7':
+                ipm.setAddrInfo(opt-'0', optarg);
+                nInfo++;
                 break;
             case 'i':  // Run in interactive (menu) mode
                 ipm.setInteractive();
@@ -64,15 +68,29 @@ void processArgs(int argc, char *argv[])
                 break;
         }
     }
-    std::cout << ipm.Port() << std::endl;
+
+    // Confirm that the number of addrinfo command line entries equals the
+    // the numaddr number.
+    if (atoi(ipm.numAddr()) != nInfo)
+    {
+        std::cout << "-n option must match number of addresses given on " <<
+            "command line" << std::endl;
+        errflag++;
+    }
+
     if (errflag or not nopt or not p or not m or not r or not b or not n)
     {
         std::cout << "Usage:" << std::endl;
         std::cout << "\t-p <port>\tport iPM is connected to" << std::endl;
-        std::cout << "\t-m <measurerate>\tSTATUS & MEASURE collection rate (hz)" << std::endl;
-        std::cout << "\t-r <recordperiod>\tPeriod of RECORD queries (minutes)" << std::endl;
+        std::cout << "\t-m <measurerate>\tSTATUS & MEASURE collection rate "
+            << " (hz)" << std::endl;
+        std::cout << "\t-r <recordperiod>\tPeriod of RECORD queries (minutes)"
+            << std::endl;
         std::cout << "\t-b <baudrate>\tBaud rate" << std::endl;
-        std::cout << "\t-n <num_addr>\tnumber of active addresses on iPM" << std::endl;
+        std::cout << "\t-n <num_addr>\tnumber of active addresses on iPM"
+            << std::endl;
+        std::cout << "\t-#\tNumber 0 to n-1 followed by info block " <<
+            "(-# addr, numphases, procqueries, port" << std::endl;
         std::cout << "\t-i\tRun in interactive mode" << std::endl;
         exit(1);
     }
@@ -80,8 +98,10 @@ void processArgs(int argc, char *argv[])
 
 bool init_device(int fd)
 {
+    // Turn Device OFF, wait > 100ms then turn ON to reset state
     std::string msg = "OFF";
     char msgarg[8];
+    char *addrinfo;
     if(not ipm.send_command(fd, msg)) { return false; }
 
     sleep(.11);  // Wait > 100ms
@@ -89,14 +109,37 @@ bool init_device(int fd)
     msg = "RESET";
     if(not ipm.send_command(fd, msg)) { return false; }
 
-    msg = "ADR";
-    std::cout << "This ipm has " << ipm.numAddr() << " active addresses" << std::endl;
+    // Verify device existence at all addresses
+    std::cout << "This ipm has " << ipm.numAddr() << " active addresses"
+        << std::endl;
     for (int i=0; i < atoi(ipm.numAddr()); i++)
     {
-        std::cout << "Getting info for address " << i << std::endl;
-        sprintf(msgarg, "%d", i);
-        std::cout << "Attempting to send message " << msg << " " << msgarg << std::endl;
+        ipm.parse_addrInfo(i);
+        std::cout << "Info for address " << i << " is " << ipm.addr(i)
+            << std::endl;
+        msg = "ADR";
+        sprintf(msgarg, "%d", ipm.addr(i));
+        std::cout << "Attempting to send message " << msg << " " << msgarg
+            << std::endl;
         if(not ipm.send_command(fd, msg, msgarg)) { return false; }
+
+        // Query Serial Number
+        msg = "SERNO?";
+        // TBD: If SERNO query fails, remove address from list, but continue
+        // with other addresses
+        if(not ipm.send_command(fd, msg)) { return false; }
+
+        // Query Firmware Version
+        msg = "Ver?";
+        if(not ipm.send_command(fd, msg)) { return false; }
+
+        // Execute build-in self test
+        msg = "TEST";
+        if(not ipm.send_command(fd, msg)) { return false; }
+        msg = "BITRESULT?";
+        if(not ipm.send_command(fd, msg)) { return false; }
+        //TBD: read in 24 bytes of data from test
+
     }
 
     return true;

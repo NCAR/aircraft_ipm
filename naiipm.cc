@@ -61,7 +61,7 @@ int naiipm::open_port(const char *port)
             std::cout << "Failed to set serial attributes" << std::endl;
         }
 
-        std::cout << "port " << port << " is open." << std::endl;
+        std::cout << "Port " << port << " is open." << std::endl;
     }
 
     return(fd);
@@ -99,6 +99,29 @@ void naiipm::close_udp()
     close(sock);
 }
 
+// Parse the addrInfo block from the command line
+// Block contains addr,numphases,procqueries,port
+void naiipm::parse_addrInfo(int i)
+{
+    char *addrinfo = addrInfo(i);
+    std::cout << "Parsing info block " << addrinfo << std::endl;
+    char *ptr = strtok(addrinfo, ",");
+    setAddr(i, ptr);
+    std::cout << "addr: " << addr(i) << std::endl;
+
+    ptr = strtok(NULL, ",");
+    setNumphases(i, ptr);
+    std::cout << "numphases: " << numphases(i) << std::endl;
+
+    ptr = strtok(NULL, ",");
+    setProcqueries(i, ptr);
+    std::cout << "procqueries: " << procqueries(i) << std::endl;
+
+    ptr = strtok(NULL, ",");
+    setAddrPort(i, ptr);
+    std::cout << "addrport: " << addrport(i) << std::endl;
+}
+
 // read response from iPM
 std::string naiipm::get_response(int fd, int len)
 {
@@ -111,7 +134,6 @@ std::string naiipm::get_response(int fd, int len)
         int ret = read(fd, &c, 1);
         if (ret > 0)  // successful read
         {
-            std::cout << c << std::endl;
             l[n] = c;
             if (c == '\n') {
                 break;
@@ -150,7 +172,7 @@ bool naiipm::send_command(int fd, std::string msg, std::string msgarg)
     // Find expected response for this message
     auto response = ipm_commands.find(msg);
     std::string expected_response = response->second;
-    std::cout << "Expect response '" << expected_response << "'" << std::endl;
+    std::cout << "Expect response " << expected_response << std::endl;
 
     // Send message to ipm
     if (msgarg != "")
@@ -163,7 +185,7 @@ bool naiipm::send_command(int fd, std::string msg, std::string msgarg)
     {
         std::cout << errno << std::endl;
     }
-    std::cout << "write completed" << std::endl;
+    std::cout << "Write completed" << std::endl;
 
     // Get response from ipm
     std::string line = get_response(fd, int(expected_response.length()));

@@ -39,12 +39,38 @@ class naiipm
         const char* numAddr()      { return _numaddr; }
         void setNumAddr(const char numaddr[])   { _numaddr = numaddr; }
 
+        char* addrInfo(int index)      { return _addrinfo[index]; }
+        void setAddrInfo(int optopt, char addrinfo[])
+            {_addrinfo[optopt] = addrinfo;}
+        void parse_addrInfo(int index);
+
+        int addr(int index)   { return _addr[index];}
+        void setAddr(int index, char* ptr)
+            {_addr[index] = atoi(ptr);}
+
+        int numphases(int index)   { return _numphases[index];}
+        void setNumphases(int index, char* ptr)
+            {_numphases[index] = atoi(ptr);}
+
+        int procqueries(int index)   { return _procqueries[index];}
+        void setProcqueries(int index, char* ptr)
+            {_procqueries[index] = atoi(ptr);}
+
+        int addrport(int index)   { return _addrport[index];}
+        void setAddrPort(int index, char* ptr)
+            {_addrport[index] = atoi(ptr);}
+
         bool Interactive()    { return _interactive; };
         void setInteractive() {_interactive = true; }
 
     protected:
         const char* _port;
         const char* _numaddr;
+        char* _addrinfo[8];
+        int _addr[8];
+        int _numphases[8];
+        int _procqueries[8];
+        int _addrport[8];
         bool _interactive = false;
         struct sockaddr_in servaddr;
         //  AF_INET for IPv4/ AF_INET6 for IPv6
