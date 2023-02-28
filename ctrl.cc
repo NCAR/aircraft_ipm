@@ -33,7 +33,7 @@ void processArgs(int argc, char *argv[])
             case 'm':  // STATUS & MEASURE collection rate (hz)
                 m = true;
                 break;
-            case 'r':  // Period of RECORD queries (mintes)
+            case 'r':  // Period of RECORD queries (minutes)
                 r = true;
                 break;
             case 'b':  // Baud rate
@@ -71,7 +71,7 @@ void processArgs(int argc, char *argv[])
 
     // Confirm that the number of addrinfo command line entries equals the
     // the numaddr number.
-    if (atoi(ipm.numAddr()) != nInfo)
+    if (nInfo != 0 and atoi(ipm.numAddr()) != nInfo)
     {
         std::cout << "-n option must match number of addresses given on " <<
             "command line" << std::endl;
@@ -91,7 +91,7 @@ void processArgs(int argc, char *argv[])
             << std::endl;
         std::cout << "\t-#\tNumber 0 to n-1 followed by info block " <<
             "(-# addr, numphases, procqueries, port" << std::endl;
-        std::cout << "\t-i\tRun in interactive mode" << std::endl;
+        std::cout << "\t-i\tRun in interactive mode (optional)" << std::endl;
         exit(1);
     }
 }
@@ -150,10 +150,15 @@ int main(int argc, char * argv[])
     processArgs(argc, argv);
     int fd = ipm.open_port(ipm.Port());
 
+    bool status = true;
     if (ipm.Interactive())
     {
-        ipm.printMenu();
-        ipm.readInput(fd);
+        while (status != 0)
+        {
+          ipm.printMenu();
+          status = ipm.readInput(fd);
+          std::cout << std::boolalpha << "Status is " << status << std::endl;
+        }
     } else {
         if (init_device(fd))
         {

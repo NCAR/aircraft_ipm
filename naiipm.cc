@@ -200,13 +200,16 @@ bool naiipm::send_command(int fd, std::string msg, std::string msgarg)
             << expected_response <<  std::endl;
         return false;  // command failed
     }
+
+    // TBD: read binary part of response
 }
 
 // List use options in interactive mode
 void naiipm::printMenu()
 {
     std::cout << "=========================================" << std::endl;
-    std::cout << "Type one of the following commands" << std::endl;
+    std::cout << "Type one of the following iPM commands or" << std::endl;
+    std::cout << "enter 'q' to quit" << std::endl;
     std::cout << "=========================================" << std::endl;
     for (auto msg : ipm_commands) {
         std::cout << msg.first << std::endl;
@@ -216,20 +219,39 @@ void naiipm::printMenu()
 bool naiipm::readInput(int fd)
 {
     std::string cmd = "";
-    std::cin >> (cmd);
 
     // Request user input
-    const char *cmdInput = cmd.c_str();
+    std::cin >> (cmd);
     std::cout << "User requested " << cmd << std::endl;
+
+    // Catch exit request
+    if (cmd.compare("q") == 0)
+    {
+        std::cout << "Exiting..." << std::endl;
+        return false;
+    }
 
     // Confirm command is in list of acceptable command
     if (not ipm_commands.count(cmd))
     {
-        std::cout << "Command " << cmd << " is invalid" << std::endl;
-        return false;
+        std::cout << "Command " << cmd << " is invalid. Please enter a " <<
+            "valid command" << std::endl;
+        return true;
+    }
+
+    // ADR is only command that requires a second component
+    if (cmd.compare("ADR") == 0)
+    {
+        std::string addr = "";
+        std::cout << "Which address would you like to activate (0-7)?"
+            << std::endl;
+        std::cin >> (addr);
+        cmd.append(' ' + addr);
+        std::cout << "User requested " << cmd << std::endl;
     }
 
     // If command is valid, send to ipm
+    const char *cmdInput = cmd.c_str();
     if (not send_command(fd, (char *)cmdInput)) { return false; }
 
     return true;
