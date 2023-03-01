@@ -98,6 +98,8 @@ void processArgs(int argc, char *argv[])
 
 bool init_device(int fd)
 {
+    ipm.flush(fd);
+
     // Turn Device OFF, wait > 100ms then turn ON to reset state
     std::string msg = "OFF";
     char msgarg[8];
@@ -125,12 +127,16 @@ bool init_device(int fd)
 
         // Query Serial Number
         msg = "SERNO?";
-        // TBD: If SERNO query fails, remove address from list, but continue
-        // with other addresses
-        if(not ipm.send_command(fd, msg)) { return false; }
+        if(not ipm.send_command(fd, msg))
+        {
+            return false;
+            // TBD: If SERNO query fails, remove address from list, but
+            // continue with other addresses. decrease numAddr by 1 and
+            // remove ipm.addr(i) from array
+        }
 
         // Query Firmware Version
-        msg = "Ver?";
+        msg = "VER?";
         if(not ipm.send_command(fd, msg)) { return false; }
 
         // Execute build-in self test
@@ -138,7 +144,8 @@ bool init_device(int fd)
         if(not ipm.send_command(fd, msg)) { return false; }
         msg = "BITRESULT?";
         if(not ipm.send_command(fd, msg)) { return false; }
-        //TBD: read in 24 bytes of data from test
+        std::string test_result = ipm.getData(msg);
+        // TBD - validate test response. What is a valid response??
 
     }
 
@@ -163,10 +170,10 @@ int main(int argc, char * argv[])
         if (init_device(fd))
         {
             std::cout << "Device successfully initialized" << std::endl;
-            fprintf(stderr, "Device successfully initialized\n");
         } else {
             std::cout << "Device failed to initialize" << std::endl;
-            fprintf(stderr, "Device failed to initialize\n");
+            ipm.close_port(fd);
+            exit(1);
         }
     }
 

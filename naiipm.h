@@ -31,6 +31,8 @@ class naiipm
         void send_udp(const char *buffer);
         void close_udp();
         std::string get_response(int fd, int len);
+        void flush(int fd);
+        bool verify(std::string cmd);
         bool send_command(int fd, std::string msg, std::string msgarg = "");
 
         const char* Port()      { return _port; }
@@ -41,27 +43,30 @@ class naiipm
 
         char* addrInfo(int index)      { return _addrinfo[index]; }
         void setAddrInfo(int optopt, char addrinfo[])
-            {_addrinfo[optopt] = addrinfo;}
+            { _addrinfo[optopt] = addrinfo; }
         void parse_addrInfo(int index);
 
-        int addr(int index)   { return _addr[index];}
+        int addr(int index)   { return _addr[index]; }
         void setAddr(int index, char* ptr)
-            {_addr[index] = atoi(ptr);}
+            { _addr[index] = atoi(ptr); }
 
-        int numphases(int index)   { return _numphases[index];}
+        int numphases(int index)   { return _numphases[index]; }
         void setNumphases(int index, char* ptr)
-            {_numphases[index] = atoi(ptr);}
+            { _numphases[index] = atoi(ptr); }
 
-        int procqueries(int index)   { return _procqueries[index];}
+        int procqueries(int index)   { return _procqueries[index]; }
         void setProcqueries(int index, char* ptr)
-            {_procqueries[index] = atoi(ptr);}
+            { _procqueries[index] = atoi(ptr); }
 
-        int addrport(int index)   { return _addrport[index];}
+        int addrport(int index)   { return _addrport[index]; }
         void setAddrPort(int index, char* ptr)
-            {_addrport[index] = atoi(ptr);}
+            { _addrport[index] = atoi(ptr); }
 
         bool Interactive()    { return _interactive; };
-        void setInteractive() {_interactive = true; }
+        void setInteractive() { _interactive = true; }
+
+        std::string getData(std::string msg)
+            { return ipm_data.find(msg)->second; }
 
     protected:
         const char* _port;
@@ -77,9 +82,9 @@ class naiipm
         //  SOCK_STREAM for TCP / SOCK_DGRAM for UDP
         int sock = socket(AF_INET, SOCK_DGRAM, 0);
 
-        // Map stores message, expected response
+        // Map message to expected response
         std::map<std::string, std::string>ipm_commands = {
-            { "OFF",        "OK\n"},       // Turn Devive OFF
+            { "OFF",        "OK\n"},       // Turn Device OFF
             { "RESET",      "OK\n"},       // Turn Device ON (reset)
             { "SERNO?",     "203456-7\n"}, // Query Serial number
             { "VER?",       "VER 004 2022-11-21\n"}, // Query Firmware Ver
@@ -89,6 +94,14 @@ class naiipm
             { "MEASURE?",   "34\n"},       // Device Measurement
             { "STATUS?",    "12\n"},       // Device Status
             { "RECORD?",    "68\n"},       // Device Statistics
+        };
+
+        // Map message to data string
+        std::map<std::string, std::string>ipm_data = {
+            { "BITRESULT?", ""},       // Query self test result
+            { "MEASURE?",   ""},       // Device Measurement
+            { "STATUS?",    ""},       // Device Status
+            { "RECORD?",    ""},       // Device Statistics
         };
 
 };

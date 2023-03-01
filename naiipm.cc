@@ -134,6 +134,7 @@ std::string naiipm::get_response(int fd, int len)
         int ret = read(fd, &c, 1);
         if (ret > 0)  // successful read
         {
+            //std::cout << c << std::endl;
             l[n] = c;
             if (c == '\n') {
                 break;
@@ -153,11 +154,11 @@ std::string naiipm::get_response(int fd, int len)
         }
 
         // if receive len chars without an endline, return anyway
-         if (n > (len - 1)) { break;}
-    }
-    if (tcflush(fd, TCIOFLUSH) == -1)
-    {
-        std::cout << errno << std::endl;
+        if (n > (len - 1)) { break;}
+
+        // TBD: If iPM never returns expected number of bytes, timeout
+        // Currently have RECORD? not returning enough data so can test
+        // this.
     }
 
     l[n+1] = '\0'; // terminate the string
@@ -168,10 +169,14 @@ std::string naiipm::get_response(int fd, int len)
 // send command to iPM and verify response
 bool naiipm::send_command(int fd, std::string msg, std::string msgarg)
 {
+    // Confirm command is in list of acceptable command
+    if (not verify(msg)) {return false;}
+
     std::cout << "Got message " << msg << std::endl;
     // Find expected response for this message
     auto response = ipm_commands.find(msg);
     std::string expected_response = response->second;
+    // std::string expected_response = ipm_commands.find(msg)->second;
     std::cout << "Expect response " << expected_response << std::endl;
 
     // Send message to ipm
@@ -191,17 +196,37 @@ bool naiipm::send_command(int fd, std::string msg, std::string msgarg)
     std::string line = get_response(fd, int(expected_response.length()));
     std::cout << "Received " << line << std::endl;
 
-    if(line == expected_response)
+    if(line != expected_response)
     {
-        return true;  // command succeeded
-    } else {
         printf("Device command %s ", msg);
         std::cout << "did not return expected response "
             << expected_response <<  std::endl;
         return false;  // command failed
     }
 
-    // TBD: read binary part of response
+    // Read binary part of response. Length of binary response was
+    // returned as first response to query.
+    if (ipm_data.find(msg) != ipm_data.end()) // cmd returns data
+    {
+        int binlen = std::stoi(line);
+        std::cout << "Now get " << binlen << " bytes" << std::endl;
+        std::string data = get_response(fd, binlen);
+        ipm_data.find(msg)->second = data;
+    }
+
+    flush(fd);
+
+    return true;  // command succeeded
+}
+
+// Flush serial port
+void naiipm::flush(int fd)
+{
+    if (tcflush(fd, TCIOFLUSH) == -1)
+    {
+        std::cout << errno << std::endl;
+    }
+
 }
 
 // List use options in interactive mode
@@ -213,6 +238,19 @@ void naiipm::printMenu()
     std::cout << "=========================================" << std::endl;
     for (auto msg : ipm_commands) {
         std::cout << msg.first << std::endl;
+    }
+}
+
+bool naiipm::verify(std::string cmd)
+{
+    // Confirm command is in list of acceptable command
+    if (not ipm_commands.count(cmd))
+    {
+        std::cout << "Command " << cmd << " is invalid. Please enter a " <<
+            "valid command" << std::endl;
+        return false;
+    } else {
+        return true;
     }
 }
 
@@ -232,27 +270,27 @@ bool naiipm::readInput(int fd)
     }
 
     // Confirm command is in list of acceptable command
-    if (not ipm_commands.count(cmd))
-    {
-        std::cout << "Command " << cmd << " is invalid. Please enter a " <<
-            "valid command" << std::endl;
-        return true;
-    }
+    // If it is not, ask user to enter another command
+    if (not verify(cmd)) {return true;}
 
-    // ADR is only command that requires a second component
+    // If command is valid, send to ipm
+    const char *cmdInput = cmd.c_str();
     if (cmd.compare("ADR") == 0)
     {
+        // ADR is only command that requires a second component
         std::string addr = "";
         std::cout << "Which address would you like to activate (0-7)?"
             << std::endl;
         std::cin >> (addr);
-        cmd.append(' ' + addr);
-        std::cout << "User requested " << cmd << std::endl;
+        std::cout << "User requested " << cmd << " " << addr << std::endl;
+        if (not send_command(fd, (char *)cmdInput, addr)) { return false; }
+    } else {
+        if (not send_command(fd, (char *)cmdInput)) { return false; }
     }
-
-    // If command is valid, send to ipm
-    const char *cmdInput = cmd.c_str();
-    if (not send_command(fd, (char *)cmdInput)) { return false; }
+    if (ipm_data.find(cmd) != ipm_data.end())
+    {
+        std::cout << "Received " << ipm_data.find(cmd)->second << std::endl;
+    }
 
     return true;
 }
