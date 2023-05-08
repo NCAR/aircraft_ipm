@@ -126,7 +126,7 @@ void naiipm::parse_addrInfo(int i)
 std::string naiipm::get_response(int fd, int len)
 {
     int n = 0, r = 0;
-    char line[len+1] = "";  // space for string terminating char
+    char line[len] = "";
     char *l = &line[0];
     while (true)
     {
