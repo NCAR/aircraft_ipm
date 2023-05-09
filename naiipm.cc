@@ -51,7 +51,7 @@ int naiipm::open_port(const char *port)
             std::cout << "Failed to set baud rate to 115200" << std::endl;
         }
 
-        port_settings.c_lflag &= ~ICANON; // ensure non-canonical
+        port_settings.c_cflag &= ~CRTSCTS; // turn off hardware flow control
         port_settings.c_cflag |= CS8; // 8n1 (8bit,no parity,1 stopbit)
         port_settings.c_cc[VTIME] = 1; // 0.1 second timeout
 
@@ -184,7 +184,9 @@ bool naiipm::send_command(int fd, std::string msg, std::string msgarg)
     {
         msg.append(' ' + msgarg);
     }
+    msg += "\n";  // Add linefeed to end of command
     std::cout << "Sending message " << msg << std::endl;
+    std::cout << "of length " << msg.length() << std::endl;
     write(fd, msg.c_str(), msg.length());
     if (tcdrain(fd) == -1)  // wait for write to complete
     {

@@ -86,8 +86,8 @@ class naiipm
         std::map<std::string, std::string>ipm_commands = {
             { "OFF",        "OK\n"},       // Turn Device OFF
             { "RESET",      "OK\n"},       // Turn Device ON (reset)
-            { "SERNO?",     "203456-7\n"}, // Query Serial number
-            { "VER?",       "VER 004 2022-11-21\n"}, // Query Firmware Ver
+            { "SERNO?",     "200728\n"}, // Query Serial number
+            { "VER?",       "VER A022(L) 2018-11-13\n"}, // Query Firmware Ver
             { "TEST",       "OK\n"},       // Execute build-in self test
             { "BITRESULT?", "24\n"},       // Query self test result
             { "ADR",        ""},           // Device Address Selection
