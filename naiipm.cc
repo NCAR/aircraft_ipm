@@ -128,13 +128,14 @@ std::string naiipm::get_response(int fd, int len)
     int n = 0, r = 0;
     char line[len] = "";
     char *l = &line[0];
+    std::cout << "len " << len << std::endl;
     while (true)
     {
         char c;
         int ret = read(fd, &c, 1);
         if (ret > 0)  // successful read
         {
-            //std::cout << c << std::endl;
+            std::cout << '[' << c << ']' << std::endl;
             l[n] = c;
             if (c == '\n') {
                 break;
@@ -184,15 +185,17 @@ bool naiipm::send_command(int fd, std::string msg, std::string msgarg)
     {
         msg.append(' ' + msgarg);
     }
-    msg += "\n";  // Add linefeed to end of command
-    std::cout << "Sending message " << msg << std::endl;
-    std::cout << "of length " << msg.length() << std::endl;
-    write(fd, msg.c_str(), msg.length());
+    std::string sendmsg = msg + "\n";  // Add linefeed to end of command
+    std::cout << "Sending message " << sendmsg << std::endl;
+    std::cout << "of length " << sendmsg.length() << std::endl;
+    write(fd, sendmsg.c_str(), sendmsg.length());
     if (tcdrain(fd) == -1)  // wait for write to complete
     {
         std::cout << errno << std::endl;
     }
     std::cout << "Write completed" << std::endl;
+    // TBD: Need some sort of timeout here if instrument is hung and not sending
+    // anything back that lets user know a power cycle might be required.
 
     // Get response from ipm
     std::string line = get_response(fd, int(expected_response.length()));
@@ -213,6 +216,7 @@ bool naiipm::send_command(int fd, std::string msg, std::string msgarg)
         int binlen = std::stoi(line);
         std::cout << "Now get " << binlen << " bytes" << std::endl;
         std::string data = get_response(fd, binlen);
+        std::cout << "Received " << data << std::endl;
         ipm_data.find(msg)->second = data;
     }
 
@@ -291,7 +295,7 @@ bool naiipm::readInput(int fd)
     }
     if (ipm_data.find(cmd) != ipm_data.end())
     {
-        std::cout << "Received " << ipm_data.find(cmd)->second << std::endl;
+        std::cout << "readInput received " << ipm_data.find(cmd)->second << std::endl;
     }
 
     return true;
