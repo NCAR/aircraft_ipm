@@ -157,6 +157,8 @@ int main(int argc, char * argv[])
     processArgs(argc, argv);
     int fd = ipm.open_port(ipm.Port());
 
+    ipm.initData(); // Initialize the binary data map
+
     bool status = true;
     if (ipm.Interactive())
     {

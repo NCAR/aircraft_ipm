@@ -30,7 +30,7 @@ class naiipm
         void open_udp(const char *ip, int port);
         void send_udp(const char *buffer);
         void close_udp();
-        std::string get_response(int fd, int len);
+        char* get_response(int fd, int len);
         void flush(int fd);
         bool verify(std::string cmd);
         bool send_command(int fd, std::string msg, std::string msgarg = "");
@@ -65,8 +65,13 @@ class naiipm
         bool Interactive()    { return _interactive; };
         void setInteractive() { _interactive = true; }
 
-        std::string getData(std::string msg)
+        char* getData(std::string msg)
             { return ipm_data.find(msg)->second; }
+
+        void setData(std::string cmd, char * bitdata)
+            {ipm_data[cmd] = bitdata;}
+
+        void initData();
 
     protected:
         const char* _port;
@@ -97,12 +102,9 @@ class naiipm
         };
 
         // Map message to data string
-        std::map<std::string, std::string>ipm_data = {
-            { "BITRESULT?", ""},       // Query self test result
-            { "MEASURE?",   ""},       // Device Measurement
-            { "STATUS?",    ""},       // Device Status
-            { "RECORD?",    ""},       // Device Statistics
-        };
+        typedef std::map<std::string, char*> IpmMap;
+        typedef std::pair<std::string, char*> IpmPair;
+        IpmMap ipm_data;
 
 };
 

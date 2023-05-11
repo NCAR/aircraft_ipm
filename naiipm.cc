@@ -5,6 +5,7 @@
 
 #include <fcntl.h>
 #include <termios.h>
+#include <bitset>
 
 #include "naiipm.h"
 
@@ -122,8 +123,21 @@ void naiipm::parse_addrInfo(int i)
     std::cout << "addrport: " << addrport(i) << std::endl;
 }
 
+// Initialize the binary data map
+void naiipm::initData()
+{
+    char bitdata[24] = "\0";
+    char measuredata[34] = "\0";
+    char statusdata[12] = "\0";
+    char recorddata[68] = "\0";
+    setData("BITRESULT?", bitdata);    // Query self test result
+    setData("MEASURE?", measuredata);  // Device Measurement
+    setData("STATUS?", statusdata);    // Device Status
+    setData("RECORD?", recorddata);    // Device Statistics
+}
+
 // read response from iPM
-std::string naiipm::get_response(int fd, int len)
+char* naiipm::get_response(int fd, int len)
 {
     int n = 0, r = 0;
     char line[len] = "";
@@ -135,7 +149,11 @@ std::string naiipm::get_response(int fd, int len)
         int ret = read(fd, &c, 1);
         if (ret > 0)  // successful read
         {
-            std::cout << '[' << c << ']' << std::endl;
+            std::bitset<8> x(c);
+            std::cout << n+1 << ": [" << c << "] " << int(c) << " : " << x <<std::endl;
+            if (c == '\0') {
+                std::cout << "Found a null" << std::endl;
+            }
             l[n] = c;
             if (c == '\n') {
                 break;
@@ -164,7 +182,7 @@ std::string naiipm::get_response(int fd, int len)
 
     l[n+1] = '\0'; // terminate the string
 
-    return(line);
+    return(l);
 }
 
 // send command to iPM and verify response
@@ -215,9 +233,8 @@ bool naiipm::send_command(int fd, std::string msg, std::string msgarg)
     {
         int binlen = std::stoi(line);
         std::cout << "Now get " << binlen << " bytes" << std::endl;
-        std::string data = get_response(fd, binlen);
-        std::cout << "Received " << data << std::endl;
-        ipm_data.find(msg)->second = data;
+        char* data = get_response(fd, binlen);
+        setData(msg, data);
     }
 
     flush(fd);
@@ -293,9 +310,29 @@ bool naiipm::readInput(int fd)
     } else {
         if (not send_command(fd, (char *)cmdInput)) { return false; }
     }
+    // Have binary data
+    for (std::map<std::string, char *>::const_iterator it = ipm_data.begin(); it !=ipm_data.end(); ++it)
+    {
+            std::cout << it->first << ':' << it->second << std::endl;
+    }
     if (ipm_data.find(cmd) != ipm_data.end())
     {
-        std::cout << "readInput received " << ipm_data.find(cmd)->second << std::endl;
+        std::string datalen = ipm_commands.find(cmd)->second;
+        std::cout << '{' << datalen << '}' << std::endl;
+        std::cout << '{' << cmd << '}' << std::endl;
+        int dlen = stoi(datalen);
+        char* data = ipm_data.find(cmd)->second;
+        std::cout << "readInput received " << data  << std::endl;
+
+        // parse the string in data
+        //std::bitset<8> x(data[23]);
+        //std::cout << x << std::endl;
+        //std::bitset<8> y(data[22]);
+        //std::cout << y << std::endl;
+        if (cmd == "BITRESULT?") {
+          short temperature = (((short)data[23]) << 8) | data[22];
+          std::cout << "iPM temperature (C) = " << temperature*.1 << std::endl;
+        }
     }
 
     return true;
