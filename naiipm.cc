@@ -126,10 +126,10 @@ void naiipm::parse_addrInfo(int i)
 // Initialize the binary data map
 void naiipm::initData()
 {
-    char bitdata[24] = "\0";
-    char measuredata[34] = "\0";
-    char statusdata[12] = "\0";
-    char recorddata[68] = "\0";
+    static char bitdata[24] = "";
+    static char measuredata[34] = "";
+    static char statusdata[12] = "";
+    static char recorddata[68] = "";
     setData("BITRESULT?", bitdata);    // Query self test result
     setData("MEASURE?", measuredata);  // Device Measurement
     setData("STATUS?", statusdata);    // Device Status
@@ -140,9 +140,8 @@ void naiipm::initData()
 char* naiipm::get_response(int fd, int len)
 {
     int n = 0, r = 0;
-    char line[len] = "";
-    char *l = &line[0];
-    std::cout << "len " << len << std::endl;
+    char *l;
+    l = new char [len+1];
     while (true)
     {
         char c;
@@ -150,12 +149,12 @@ char* naiipm::get_response(int fd, int len)
         if (ret > 0)  // successful read
         {
             std::bitset<8> x(c);
-            std::cout << n+1 << ": [" << c << "] " << int(c) << " : " << x <<std::endl;
+            std::cout << n << ": [" << c << "] " << int(c) << " : " << x <<std::endl;
             if (c == '\0') {
                 std::cout << "Found a null" << std::endl;
             }
             l[n] = c;
-            if (c == '\n') {
+            if (c == '\n') { // found linefeed
                 break;
             }
             n++;
@@ -173,7 +172,12 @@ char* naiipm::get_response(int fd, int len)
         }
 
         // if receive len chars without an endline, return anyway
-        if (n > (len - 1)) { break;}
+	// (handles binary data)
+        if (n > (len - 1))
+        {
+	    n--;  // decrement char count since never found linefeed
+	    break;
+	}
 
         // TBD: If iPM never returns expected number of bytes, timeout
         // Currently have RECORD? not returning enough data so can test
@@ -216,25 +220,28 @@ bool naiipm::send_command(int fd, std::string msg, std::string msgarg)
     // anything back that lets user know a power cycle might be required.
 
     // Get response from ipm
-    std::string line = get_response(fd, int(expected_response.length()));
-    std::cout << "Received " << line << std::endl;
-
-    if(line != expected_response)
+    if (expected_response.length() > 0) // ADR command has no response
     {
-        printf("Device command %s ", msg);
-        std::cout << "did not return expected response "
-            << expected_response <<  std::endl;
-        return false;  // command failed
-    }
+        char* line = get_response(fd, int(expected_response.length()));
+        std::cout << "Received " << line << std::endl;
 
-    // Read binary part of response. Length of binary response was
-    // returned as first response to query.
-    if (ipm_data.find(msg) != ipm_data.end()) // cmd returns data
-    {
-        int binlen = std::stoi(line);
-        std::cout << "Now get " << binlen << " bytes" << std::endl;
-        char* data = get_response(fd, binlen);
-        setData(msg, data);
+        if(line != expected_response)
+        {
+            printf("Device command %s ", msg);
+            std::cout << "did not return expected response "
+                << expected_response <<  std::endl;
+            return false;  // command failed
+        }
+
+        // Read binary part of response. Length of binary response was
+        // returned as first response to query.
+        if (ipm_data.find(msg) != ipm_data.end()) // cmd returns data
+        {
+            int binlen = std::stoi(line);
+            std::cout << "Now get " << binlen << " bytes" << std::endl;
+            char* data = get_response(fd, binlen);
+            setData(msg, data);
+        }
     }
 
     flush(fd);
@@ -310,18 +317,24 @@ bool naiipm::readInput(int fd)
     } else {
         if (not send_command(fd, (char *)cmdInput)) { return false; }
     }
-    // Have binary data
-    for (std::map<std::string, char *>::const_iterator it = ipm_data.begin(); it !=ipm_data.end(); ++it)
+
+    // Print data map for testing - only prints to first null
+    for (std::map<std::string, char *>::const_iterator it = ipm_data.begin();
+	it !=ipm_data.end(); ++it)
     {
             std::cout << it->first << ':' << it->second << std::endl;
     }
-    if (ipm_data.find(cmd) != ipm_data.end())
+
+    // Check if command has binary data component. If so, parse it into
+    // it's component variables.
+    if (ipm_data.find(cmd) != ipm_data.end())  // found cmd in binary map
     {
-        std::string datalen = ipm_commands.find(cmd)->second;
+	// retrieve binary data
+        std::string datalen = ipm_commands.find(cmd)->second; // data length
         std::cout << '{' << datalen << '}' << std::endl;
         std::cout << '{' << cmd << '}' << std::endl;
         int dlen = stoi(datalen);
-        char* data = ipm_data.find(cmd)->second;
+        char* data = ipm_data.find(cmd)->second; // data content
         std::cout << "readInput received " << data  << std::endl;
 
         // parse the string in data
