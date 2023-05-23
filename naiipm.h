@@ -68,10 +68,7 @@ class naiipm
         char* getData(std::string msg)
             { return ipm_data.find(msg)->second; }
 
-        void setData(std::string cmd, char * bitdata)
-            {ipm_data[cmd] = bitdata;}
-
-        void initData();
+        void setData(std::string cmd, char * bitdata);
 
     protected:
         const char* _port;
