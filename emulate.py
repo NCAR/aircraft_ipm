@@ -112,20 +112,36 @@ class IpmEmulator():
         """ Loop and wait for commands to arrive """
         while True:
             rdata = self.sport.read(128)
-            msg = rdata.decode('utf-8')
+            msg = rdata.decode('UTF-8').rstrip()
+
+            for char in msg:
+              if (char == '\n'):
+                print('Found a newline')
+              elif (char == '\r'):
+                print('Found a carriage return')
+              elif (char == '\0'):
+                print('Found a null')
+              elif (char == ' '):
+                print('Found a space')
+              else:
+                print(char);
 
             # On receiipt of 'x', quit cycling and exit
             if msg == 'x':
                 return
 
             for cmd in sequence:
-                if cmd.msg == msg:
-                    logger.debug(cmd.msg)
-                    logger.debug(cmd.response)
+                fullcmd = cmd.msg #+ '\n' # Add line feed to expected string
+                if fullcmd == msg:
+                    logger.debug(fullcmd)
+                    print('Sending response ' + str(cmd.response.encode('utf-8')))
                     self.sport.write(cmd.response.encode('utf-8'))
                     # If the command has a binary component, send that too
+                    bval=""
                     if cmd.bytes != '':
-                        self.sport.write(cmd.bytes)
+                        print('Sending binary data ' + str(cmd.bytes))
+                        print(len(cmd.bytes))
+                        self.sport.write(cmd.bytes.encode('utf-8'))
                     sys.stdout.flush()
 
 
