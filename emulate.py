@@ -114,17 +114,8 @@ class IpmEmulator():
             rdata = self.sport.read(128)
             msg = rdata.decode('UTF-8').rstrip()
 
-            for char in msg:
-              if (char == '\n'):
-                print('Found a newline')
-              elif (char == '\r'):
-                print('Found a carriage return')
-              elif (char == '\0'):
-                print('Found a null')
-              elif (char == ' '):
-                print('Found a space')
-              else:
-                print(char);
+            if (msg != ''):
+                print('Received command ' + msg);
 
             # On receiipt of 'x', quit cycling and exit
             if msg == 'x':
