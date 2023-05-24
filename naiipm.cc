@@ -170,7 +170,7 @@ char* naiipm::get_response(int fd, int len)
                 std::cout << "Found a null" << std::endl;
             }
             l[n] = c;
-            if (c == '\n') {
+            if (c == '\n') { // found linefeed
                 break;
             }
             n++;
@@ -188,7 +188,12 @@ char* naiipm::get_response(int fd, int len)
         }
 
         // if receive len chars without an endline, return anyway
-        if (n > (len - 1)) { break;}
+	// (handles binary data)
+        if (n > (len - 1))
+        {
+	    n--;  // decrement char count since never found linefeed
+	    break;
+	}
 
         // TBD: If iPM never returns expected number of bytes, timeout
         // Currently have RECORD? not returning enough data so can test
@@ -327,13 +332,17 @@ bool naiipm::readInput(int fd)
     } else {
         if (not send_command(fd, (char *)cmdInput)) { return false; }
     }
-    if (ipm_data.find(cmd) != ipm_data.end())
+
+    // Check if command has binary data component. If so, parse it into
+    // it's component variables.
+    if (ipm_data.find(cmd) != ipm_data.end())  // found cmd in binary map
     {
-        std::string datalen = ipm_commands.find(cmd)->second;
+	    // retrieve binary data
+        std::string datalen = ipm_commands.find(cmd)->second; // data length
         std::cout << '{' << datalen << '}' << std::endl;
         std::cout << '{' << cmd << '}' << std::endl;
         int dlen = stoi(datalen);
-        char* data = ipm_data.find(cmd)->second;
+        char* data = ipm_data.find(cmd)->second; // data content
         std::cout << "readInput received " << data  << std::endl;
 
         if (cmd == "BITRESULT?") {
