@@ -16,11 +16,12 @@ import numpy
 # the reported response. Still not sure this is better than a
 # dictionary...
 
-# Some sample data - to be refined as we go
-TEST_DATA = b'0123456789abcdefghijklmn'  # sample 24 byte data
-MEASURE_DATA = b'0123456789abcdefghijklmnopqrstuvwx'  # 34 byte data
-STATUS_DATA = b'0123456789abc'  # 12 byte data
-RECORD_DATA = b'xxxxxxx'  # 64 byte data
+# Some sample data from instrument runs in the DSM lab
+
+TEST_DATA = '\0\0?\0?\0\0\0\0\0P\0\0\0\0\0#\0?\0?\0L1\n'  # sample 24 byte data
+MEASURE_DATA = 'X\0\0\0P\0?\0?\0\0\0#\0#\0\0\0%\0\0\0\0\0?\0?\0?\0\0\0\0\0\n'  # 34 byte data
+STATUS_DATA = '\0\0\0\0\0\0\0\0\0\0\0\0\n'  # 12 byte data
+RECORD_DATA = '\0\09\0\0\0???\0\0\0\0\0\0\0\0\0?\0?\0?\0?\0\0\0\0\0X\0X\0\0\0B\0\0\0/\0\0\0\0\0\0?\0?\0\0?\0;\0\0\0C\0\0\0\0\0M?/?\n'  # 68 byte data
 
 # Tuple to store iPM commands and responses
 Command = namedtuple('Command', ['msg', 'response', 'bytes'])
@@ -28,8 +29,8 @@ Command = namedtuple('Command', ['msg', 'response', 'bytes'])
 sequence = [
     Command('OFF', 'OK\n', ''),           # Turn Device OFF
     Command('RESET', 'OK\n', ''),         # Turn Device ON (reset)
-    Command('SERNO?', '203456-7\n', ''),  # Query Serial number
-    Command('VER?', 'VER 004 2022-11-21\n', ''),  # Query Firmware Ver
+    Command('SERNO?', '200728\n', ''),  # Query Serial number
+    Command('VER?', 'VER A022(L) 2018-11-13\n', ''),  # Query Firmware Ver
     Command('TEST', 'OK\n', ''),          # Execute build-in self test
     Command('BITRESULT?', '24\n', TEST_DATA),  # Query self test result
     Command('ADR', '', ''),               # Device Address Selection
