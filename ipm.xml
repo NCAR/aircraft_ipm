@@ -28,7 +28,7 @@
             <variable longname="Power Trip Flags, performance exceeds limits" name="TRIPFLAGS" units=""/>
             <variable longname="Power Caution Flags, marginal performance" name="CAUTIONFLAGS" units=""/>
         </sample>
-        <sample id="3" rate="1" scanfFormat="RECORD,%f,%f,%f,%f,%f,%f,%f,%f,%f,%f,%f,%f,%f,%f">
+        <sample id="3" rate="1" scanfFormat="RECORD,%f,%f,%f,%f,%f,%f,%f,%f,%f,%f,%f,%f">
             <variable longname="Maximum AC Power Frequency" name="FREQMAX" units="Hz"/>
             <variable longname="Minimum AC Power Frequency" name="FREQMIN" units="Hz"/>
             <variable longname="Maximum AC Voltage, RMS Phase A" name="VRMSMAXA" units="V"/>
@@ -37,8 +37,6 @@
             <variable longname="Minimum AC Voltage, Peak Phase A" name="VPKMINA" units="V"/>
             <variable longname="Maximum AC Voltage, DC Component Phase A" name="VDCMAXA" units="V"/>
             <variable longname="Minimum AC Voltage, DC Component Phase A" name="VDCMINA" units="V"/>
-            <variable longname="Maximum AC Phase Angle Phase A" name="PHMAXA" units="deg_C"/>
-            <variable longname="Minimum AC Phase Angle Phase A" name="PHMINA" units="deg_C"/>
             <variable longname="Maximum AC Voltage THD Phase A" name="THDMAXA" units="%"/>
             <variable longname="Minimum AC Voltage THD Phase A" name="THDMINA" units="%"/>
             <variable longname="Elapsed Time since power-up" name="TIME" units="ms"/>
@@ -70,7 +68,7 @@
             <variable longname="Power Trip Flags, performance exceeds limits" name="TRIPFLAGS" units=""/>
             <variable longname="Power Caution Flags, marginal performance" name="CAUTIONFLAGS" units=""/>
         </sample>
-        <sample id="3" rate="1" scanfFormat="RECORD,%f,%f,%f,%f,%f,%f,%f,%f,%f,%f,%f,%f,%f,%f,%f,%f,%f,%f,%f,%f,%f,%f,%f,%f,%f,%f,%f,%f,%f,%f,%f,%f,%f,%f">
+        <sample id="3" rate="1" scanfFormat="RECORD,%f,%f,%f,%f,%f,%f,%f,%f,%f,%f,%f,%f,%f,%f,%f,%f,%f,%f,%f,%f,%f,%f,%f,%f,%f,%f,%f,%f">
             <variable longname="Maximum AC Power Frequency" name="FREQMAX" units="Hz"/>
             <variable longname="Minimum AC Power Frequency" name="FREQMIN" units="Hz"/>
             <variable longname="Maximum AC Voltage, RMS Phase A" name="VRMSMAXA" units="V"/>
@@ -91,12 +89,6 @@
             <variable longname="Minimum AC Voltage, DC Component Phase A" name="VDCMINA" units="V"/>
             <variable longname="Minimum AC Voltage, DC Component Phase A" name="VDCMINB" units="V"/>
             <variable longname="Minimum AC Voltage, DC Component Phase A" name="VDCMINC" units="V"/>
-            <variable longname="Maximum AC Phase Angle Phase A" name="PHMAXA" units="deg_C"/>
-            <variable longname="Maximum AC Phase Angle Phase B" name="PHMAXB" units="deg_C"/>
-            <variable longname="Maximum AC Phase Angle Phase C" name="PHMAXC" units="deg_C"/>
-            <variable longname="Minimum AC Phase Angle Phase A" name="PHMINA" units="deg_C"/>
-            <variable longname="Minimum AC Phase Angle Phase B" name="PHMINB" units="deg_C"/>
-            <variable longname="Minimum AC Phase Angle Phase C" name="PHMINC" units="deg_C"/>
             <variable longname="Maximum AC Voltage THD Phase A" name="THDMAXA" units="%"/>
             <variable longname="Maximum AC Voltage THD Phase B" name="THDMAXB" units="%"/>
             <variable longname="Maximum AC Voltage THD Phase C" name="THDMAXC" units="%"/>
