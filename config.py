@@ -18,7 +18,7 @@ import numpy
 
 # Some sample data from instrument runs in the DSM lab
 
-TEST_DATA = '\0\0?\0?\0\0\0\0\0P\0\0\0\0\0#\0?\0?\0L1\n'  # sample 24 byte data
+TEST_DATA = '\0\0?\0?\0\0\0\0\0P\0\0\0\0\0#\0?\0?\0L\x02\n'  # sample 24 byte data
 MEASURE_DATA = 'X\0\0\0P\0?\0?\0\0\0#\0#\0\0\0%\0\0\0\0\0?\0?\0?\0\0\0\0\0\n'  # 34 byte data
 STATUS_DATA = '\0\0\0\0\0\0\0\0\0\0\0\0\n'  # 12 byte data
 RECORD_DATA = '\0\09\0\0\0???\0\0\0\0\0\0\0\0\0?\0?\0?\0?\0\0\0\0\0X\0X\0\0\0B\0\0\0/\0\0\0\0\0\0?\0?\0\0?\0;\0\0\0C\0\0\0\0\0M?/?\n'  # 68 byte data
