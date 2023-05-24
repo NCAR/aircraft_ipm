@@ -98,18 +98,8 @@ void processArgs(int argc, char *argv[])
 
 bool init_device(int fd)
 {
+
     ipm.flush(fd);
-
-    // Turn Device OFF, wait > 100ms then turn ON to reset state
-    std::string msg = "OFF";
-    char msgarg[8];
-    char *addrinfo;
-    if(not ipm.send_command(fd, msg)) { return false; }
-
-    sleep(.11);  // Wait > 100ms
-
-    msg = "RESET";
-    if(not ipm.send_command(fd, msg)) { return false; }
 
     // Verify device existence at all addresses
     std::cout << "This ipm has " << ipm.numAddr() << " active addresses"
@@ -119,11 +109,21 @@ bool init_device(int fd)
         ipm.parse_addrInfo(i);
         std::cout << "Info for address " << i << " is " << ipm.addr(i)
             << std::endl;
-        msg = "ADR";
+        std::string msg = "ADR";
+        char msgarg[8];
         sprintf(msgarg, "%d", ipm.addr(i));
         std::cout << "Attempting to send message " << msg << " " << msgarg
             << std::endl;
         if(not ipm.send_command(fd, msg, msgarg)) { return false; }
+
+        // Turn Device OFF, wait > 100ms then turn ON to reset state
+        msg = "OFF";
+        if(not ipm.send_command(fd, msg)) { return false; }
+
+        sleep(.11);  // Wait > 100ms
+
+        msg = "RESET";
+        if(not ipm.send_command(fd, msg)) { return false; }
 
         // Query Serial Number
         msg = "SERNO?";
