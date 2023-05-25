@@ -11,6 +11,34 @@
 #include <unistd.h>
 #include <iostream>
 
+/**
+ * Data structures
+ */
+
+// 1phase
+struct
+{
+    uint16_t FREQMAX;   // Frequency Max
+    uint16_t FREQMIN;   // Frequency Min
+    uint16_t VRMSMAXA;  // Phase A RMS Voltage Max
+    uint16_t VRMSMINA;  // Phase A RMS Voltage Min
+    uint16_t VPKMAXA;   // Phase A Peak Voltage Max
+    uint16_t VPKMINA;   // Phase A Peak Voltage Min
+    uint16_t VDCMAXA;   // Phase A Voltage, DC Coomponent Max
+    uint16_t VDCMINA;   // Phase A Voltage, DC Coomponent Min
+    uint8_t THDMAXA;    // Phase A Voltage THD Max
+    uint8_t THDMINA;    // Phase A Voltage THD Min
+    uint32_t TIME;      // Elapsed time since power-up (ms)
+    uint8_t EVTYPE;     // Event Type
+} record_1phase;
+
+
+// unit conversions
+static float dV2V = 0.1; // 0.1 V to V
+static float dH2H = 0.1; // 0.1 Hz to Hz
+static float mV2V = 0.001;  // mV to V
+static float dp2p = 0.1; // 0.1 % to %
+
 
 /**
  * Class to initialize and control North Atlantic Industries
@@ -22,8 +50,11 @@ class naiipm
         naiipm();
         ~naiipm();
 
+        char *buffer = (char *)malloc(1000);
+
         void printMenu();
         bool readInput(int fd);
+        bool parseData(std::string cmd, int nphases);
 
         int open_port(const char *port);
         void close_port(int fd);
@@ -38,6 +69,15 @@ class naiipm
         const char* Port()      { return _port; }
         void setPort(const char port[])   { _port = port; }
 
+        const char* rate()      { return _measureRate; }
+        void setRate(const char rate[])   { _measureRate = rate; }
+
+        const char* period()      { return _recordPeriod; }
+        void setPeriod(const char period[])   { _recordPeriod = period; }
+
+        const char* baud()      { return _baudRate; }
+        void setBaud(const char baud[])   { _baudRate = baud; }
+
         const char* numAddr()      { return _numaddr; }
         void setNumAddr(const char numaddr[])   { _numaddr = numaddr; }
 
@@ -49,6 +89,7 @@ class naiipm
         int addr(int index)   { return _addr[index]; }
         void setAddr(int index, char* ptr)
             { _addr[index] = atoi(ptr); }
+        bool setActiveAddress(int fd, int i);
 
         int numphases(int index)   { return _numphases[index]; }
         void setNumphases(int index, char* ptr)
@@ -70,10 +111,15 @@ class naiipm
 
         void setData(std::string cmd, char * bitdata);
 
+        bool loop(int fd);
+
     protected:
         const char* _port;
         const char* _numaddr;
         char* _addrinfo[8];
+        const char* _measureRate;
+        const char* _recordPeriod;
+        const char* _baudRate;
         int _addr[8];
         int _numphases[8];
         int _procqueries[8];

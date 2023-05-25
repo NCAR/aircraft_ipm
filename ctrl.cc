@@ -32,12 +32,15 @@ void processArgs(int argc, char *argv[])
                 break;
             case 'm':  // STATUS & MEASURE collection rate (hz)
                 m = true;
+                ipm.setRate(optarg);
                 break;
             case 'r':  // Period of RECORD queries (minutes)
                 r = true;
+                ipm.setPeriod(optarg);
                 break;
             case 'b':  // Baud rate
                 b = true;
+                ipm.setBaud(optarg);
                 break;
             case 'n':  // Number of addresses in use on iPM
                 n = true;
@@ -106,15 +109,12 @@ bool init_device(int fd)
         << std::endl;
     for (int i=0; i < atoi(ipm.numAddr()); i++)
     {
+        std::string msg;
         ipm.parse_addrInfo(i);
         std::cout << "Info for address " << i << " is " << ipm.addr(i)
             << std::endl;
-        std::string msg = "ADR";
-        char msgarg[8];
-        sprintf(msgarg, "%d", ipm.addr(i));
-        std::cout << "Attempting to send message " << msg << " " << msgarg
-            << std::endl;
-        if(not ipm.send_command(fd, msg, msgarg)) { return false; }
+        bool status = ipm.setActiveAddress(fd, i);
+        // TBD: If command failed (corruption) then what?
 
         // Turn Device OFF, wait > 100ms then turn ON to reset state
         msg = "OFF";
@@ -132,7 +132,7 @@ bool init_device(int fd)
             return false;
             // TBD: If SERNO query fails, remove address from list, but
             // continue with other addresses. decrease numAddr by 1 and
-            // remove ipm.addr(i) from array
+            // remove ipm.addr(i) from array. Log error.
         }
 
         // Query Firmware Version
@@ -144,8 +144,9 @@ bool init_device(int fd)
         if(not ipm.send_command(fd, msg)) { return false; }
         msg = "BITRESULT?";
         if(not ipm.send_command(fd, msg)) { return false; }
-        std::string test_result = ipm.getData(msg);
-        // TBD - validate test response. What is a valid response??
+        status = ipm.parseData(msg, 0);  // parse binary part of BITRESULT?
+        std::cout << std::boolalpha << "Status is " << status << std::endl;
+
 
     }
 
@@ -156,6 +157,9 @@ int main(int argc, char * argv[])
 {
     processArgs(argc, argv);
     int fd = ipm.open_port(ipm.Port());
+
+    // TBD: Get ip address and port from xml.
+    ipm.open_udp("10.0.0.137", 30101);
 
     bool status = true;
     if (ipm.Interactive())
@@ -175,14 +179,16 @@ int main(int argc, char * argv[])
             ipm.close_port(fd);
             exit(1);
         }
+
+        // Cycle on requested commands
+        while (true)
+        {
+            // TBD:: log status
+            status = ipm.loop(fd);
+            // For testing, sleep between calls
+            sleep(1);  // TBD: implement recordPeriod & measureRate in loop fn
+        }
     }
-
-    // TBD: Get ip address and port from xml.
-    ipm.open_udp("172.16.47.154", 30101);
-
-    // Send a message to the server
-    const char *buffer = "MEASURE,20230201T00:00:00,11,11,99,99,99,99,99\r\n";
-    ipm.send_udp(buffer);
 
     // Close socket descriptor
     ipm.close_udp();
@@ -190,5 +196,3 @@ int main(int argc, char * argv[])
     ipm.close_port(fd);
     exit(1);
 }
-
-

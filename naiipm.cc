@@ -66,6 +66,11 @@ int naiipm::open_port(const char *port)
         }
 
         // set bit input and output baud rate
+        if (atoi(baud()) != 115200)
+        {
+            // log unknown speed
+            exit(1);
+        }
         if (cfsetspeed(&port_settings, B115200) == -1)
         {
             std::cout << "Failed to set baud rate to 115200" << std::endl;
@@ -107,10 +112,11 @@ void naiipm::open_udp(const char *ip, int port)
 }
 
 // Send a UDP message to nidas
-void naiipm::send_udp(const char *buffer)
+void naiipm::send_udp(const char *buf)
 {
-    std::cout << "sending UDP string " << buffer << std::endl;
-    sendto(sock, (const char *)buffer, strlen(buffer), MSG_CONFIRM, (const struct sockaddr *) &servaddr, sizeof(servaddr));
+    std::cout << "sending UDP string " << buf << std::endl;
+    sendto(sock, (const char *)buf, strlen(buf), MSG_CONFIRM,
+            (const struct sockaddr *) &servaddr, sizeof(servaddr));
 }
 
 // Close UDP port
@@ -140,6 +146,82 @@ void naiipm::parse_addrInfo(int i)
     ptr = strtok(NULL, ",");
     setAddrPort(i, ptr);
     std::cout << "addrport: " << addrport(i) << std::endl;
+}
+
+// Set active address
+bool naiipm::setActiveAddress(int fd, int i)
+{
+    std::string msg = "ADR";
+    char msgarg[8];
+
+    sprintf(msgarg, "%d", addr(i));
+    if(not send_command(fd, msg, msgarg)) { return false; }
+
+    return true;
+}
+
+// Determine queries to send and process.
+bool naiipm::loop(int fd)
+{
+    std::string msg;
+
+    for (int i=0; i < atoi(numAddr()); i++)
+        {
+            // ‘numphases’ (integer) indicates whether 1 phase, or 3-phases of
+            // data are to be capture. Should only be =1 or =3
+            int nphases = numphases(i);
+            if (nphases != 1 && nphases != 3)
+            {
+                //log error
+                exit(1);
+            }
+
+            // ‘procqueries’ is an integer representation of 3-bit Boolean
+            // field indicating whether query responses [RECORD,MEASURE,STATUS]
+            // should be processed and variables included in a processed data
+            // file.
+            //     d’3 (b’011) indicates that MEASURE+STATUS are processed.
+            //     d’5 (b’101) indicates that RECORD+STATUS are processed.
+            int procq = procqueries(i);
+            std::bitset<4> x('\0' + procq);
+            std::cout << ": [" << procq << "] " << '\0' + procq << " : " << x
+                << std::endl;
+
+            if (setActiveAddress(fd, i))
+            {
+                std::bitset<4> r = x;
+                if ((r &= 0b0100) == 4)  // RECORD command requested
+                {
+                    msg = "RECORD?";
+                    if(not send_command(fd, msg)) { return false; }
+                    bool status = parseData(msg, nphases);
+                    std::cout << std::boolalpha << "Status is " << status
+                        << std::endl;
+                }
+                std::bitset<4> m = x;
+                if ((m &= 0b0010) == 2)  // MEASURE command requested
+                {
+                    msg = "MEASURE?";
+                    if(not send_command(fd, msg)) { return false; }
+                    bool status = parseData(msg, nphases);
+                    std::cout << std::boolalpha << "Status is " << status
+                        << std::endl;
+                }
+                std::bitset<4> s = x;
+                if ((s &= 0b0001) == 1)  // STATUS command requested
+                {
+                    msg = "STATUS?";
+                    if(not send_command(fd, msg)) { return false; }
+                    bool status = parseData(msg, nphases);
+                    std::cout << std::boolalpha << "Status is " << status
+                        << std::endl;
+                }
+            }
+
+        }
+
+    return true;
+
 }
 
 void naiipm::setData(std::string cmd, char *bitdata)
@@ -232,8 +314,9 @@ bool naiipm::send_command(int fd, std::string msg, std::string msgarg)
         std::cout << errno << std::endl;
     }
     std::cout << "Write completed" << std::endl;
-    // TBD: Need some sort of timeout here if instrument is hung and not sending
-    // anything back that lets user know a power cycle might be required.
+    // TBD: Need some sort of timeout here if instrument is hung and not
+    // sending anything back that lets user know a power cycle might be
+    // required.
 
     // Get response from ipm
     char * line = get_response(fd, int(expected_response.length()));
@@ -337,18 +420,64 @@ bool naiipm::readInput(int fd)
     // it's component variables.
     if (ipm_data.find(cmd) != ipm_data.end())  // found cmd in binary map
     {
-	    // retrieve binary data
-        std::string datalen = ipm_commands.find(cmd)->second; // data length
-        std::cout << '{' << datalen << '}' << std::endl;
-        std::cout << '{' << cmd << '}' << std::endl;
-        int dlen = stoi(datalen);
-        char* data = ipm_data.find(cmd)->second; // data content
-        std::cout << "readInput received " << data  << std::endl;
+        // Parse binary data
+        // TBD: Determine desired funtionality re: 1- or 3-phase here
+        parseData(cmd, 1); // Hardcode 1-phase in interactive mode for now
+    }
 
-        if (cmd == "BITRESULT?") {
-          short temperature = (((short)data[23]) << 8) | data[22];
-          std::cout << "iPM temperature (C) = " << temperature*.1 << std::endl;
-        }
+    return true;
+}
+
+bool naiipm::parseData(std::string cmd, int nphases)
+{
+    // nphases can be 1 or 3. Any other value is ignored.
+    // retrieve binary data
+    std::string datalen = ipm_commands.find(cmd)->second; // data length
+    std::cout << '{' << datalen << '}' << std::endl;
+    std::cout << '{' << cmd << '}' << std::endl;
+    int dlen = stoi(datalen);
+    char* data = getData(cmd); // data content
+
+    // Create some pointers to access data of various lengths
+    uint8_t *cp = (uint8_t *)data;
+    uint16_t *sp = (uint16_t *)data;
+    uint32_t *lp = (uint32_t *)data;
+
+    std::cout << "readInput received " << data  << std::endl;
+
+    // parse data
+    if (cmd == "BITRESULT?") {
+      short temperature = (((short)data[23] & 0xFF) << 8) | data[22] & 0xFF;
+      std::cout << "iPM temperature (C) = " << temperature*.1 << std::endl;
+    }
+
+    if (cmd == "RECORD?" && nphases == 1) {
+        record_1phase.FREQMAX = sp[16];
+        record_1phase.FREQMIN = sp[15];
+        record_1phase.VRMSMAXA = sp[10];
+        record_1phase.VRMSMINA = sp[9];
+        record_1phase.VPKMAXA = sp[27];
+        record_1phase.VPKMINA = sp[26];
+        record_1phase.VDCMAXA = sp[18];
+        record_1phase.VDCMINA = sp[17];
+        record_1phase.THDMAXA = cp[47];
+        record_1phase.THDMINA = cp[46];
+        // There is a typo in the programming manual. Power up count should
+        // be 4 bytes and elapsed time should start at byte 6 and be 4 bytes
+        // as coded here.
+        record_1phase.TIME = (((long)sp[4]) << 16) | sp[3];
+        std::cout << record_1phase.TIME/60000 << " minutes since power-up"
+            << std::endl;
+        record_1phase.EVTYPE = cp[0];
+        sprintf(buffer,"RECORD,%.2f,%.2f,%.2f,%.2f,%.2f,%.2f,%.4f,%.4f,%.2f,%.2f,%.2f,%.2f\r\n",
+                record_1phase.FREQMAX * dH2H, record_1phase.FREQMIN * dH2H,
+                record_1phase.VRMSMAXA * dV2V, record_1phase.VRMSMINA * dV2V,
+                record_1phase.VPKMAXA * dV2V, record_1phase.VPKMINA * dV2V,
+                record_1phase.VDCMAXA * mV2V, record_1phase.VDCMINA * mV2V,
+                record_1phase.THDMAXA * dp2p, record_1phase.THDMINA * dp2p,
+                (float)record_1phase.TIME, (float)record_1phase.EVTYPE
+                );
+        send_udp(buffer);
     }
 
     return true;
