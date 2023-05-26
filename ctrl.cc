@@ -1,6 +1,13 @@
-/********************************************************************
- ** 2023, Copyright University Corporation for Atmospheric Research
- ********************************************************************
+/*************************************************************************
+ * Program to send commands to an Intelligent Power Monitor (iPM), receive
+ * returned data and generate a UDP packet to be sent to nidas.
+ *
+ * IN DEVELOPMENT:
+ *     Questions are marked "Question:"
+ *     Incomplete items are marked "TBD"
+ *
+ *  2023, Copyright University Corporation for Atmospheric Research
+ *************************************************************************
 */
 
 #include "naiipm.h"
@@ -99,6 +106,9 @@ void processArgs(int argc, char *argv[])
     }
 }
 
+// Initialize the iPM device. Returns a verified list of device addresses
+// that may be shorter than the list passed in if some addresses did not
+// pass verification.
 bool init_device(int fd)
 {
 

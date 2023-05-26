@@ -36,6 +36,7 @@ naiipm::~naiipm()
     }
 }
 
+// Establish connection to iPM
 int naiipm::open_port(const char *port)
 {
     int fd; // file description for the serial port
