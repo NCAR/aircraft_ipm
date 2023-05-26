@@ -106,63 +106,6 @@ void processArgs(int argc, char *argv[])
     }
 }
 
-// Initialize the iPM device. Returns a verified list of device addresses
-// that may be shorter than the list passed in if some addresses did not
-// pass verification.
-bool init_device(int fd)
-{
-
-    ipm.flush(fd);
-
-    // Verify device existence at all addresses
-    std::cout << "This ipm has " << ipm.numAddr() << " active addresses"
-        << std::endl;
-    for (int i=0; i < atoi(ipm.numAddr()); i++)
-    {
-        std::string msg;
-        ipm.parse_addrInfo(i);
-        std::cout << "Info for address " << i << " is " << ipm.addr(i)
-            << std::endl;
-        bool status = ipm.setActiveAddress(fd, i);
-        // TBD: If command failed (corruption) then what?
-
-        // Turn Device OFF, wait > 100ms then turn ON to reset state
-        msg = "OFF";
-        if(not ipm.send_command(fd, msg)) { return false; }
-
-        sleep(.11);  // Wait > 100ms
-
-        msg = "RESET";
-        if(not ipm.send_command(fd, msg)) { return false; }
-
-        // Query Serial Number
-        msg = "SERNO?";
-        if(not ipm.send_command(fd, msg))
-        {
-            return false;
-            // TBD: If SERNO query fails, remove address from list, but
-            // continue with other addresses. decrease numAddr by 1 and
-            // remove ipm.addr(i) from array. Log error.
-        }
-
-        // Query Firmware Version
-        msg = "VER?";
-        if(not ipm.send_command(fd, msg)) { return false; }
-
-        // Execute build-in self test
-        msg = "TEST";
-        if(not ipm.send_command(fd, msg)) { return false; }
-        msg = "BITRESULT?";
-        if(not ipm.send_command(fd, msg)) { return false; }
-        status = ipm.parseData(msg, 0);  // parse binary part of BITRESULT?
-        std::cout << std::boolalpha << "Status is " << status << std::endl;
-
-
-    }
-
-    return true;
-}
-
 int main(int argc, char * argv[])
 {
     processArgs(argc, argv);
@@ -181,7 +124,7 @@ int main(int argc, char * argv[])
           std::cout << std::boolalpha << "Status is " << status << std::endl;
         }
     } else {
-        if (init_device(fd))
+        if (ipm.init(fd))
         {
             std::cout << "Device successfully initialized" << std::endl;
         } else {
@@ -191,12 +134,14 @@ int main(int argc, char * argv[])
         }
 
         // Cycle on requested commands
-        while (true)
+        int i=0;
+        while (i < 3)
         {
             // TBD:: log status
             status = ipm.loop(fd);
             // For testing, sleep between calls
             sleep(1);  // TBD: implement recordPeriod & measureRate in loop fn
+            i++;
         }
     }
 

@@ -61,6 +61,7 @@ class naiipm
         void open_udp(const char *ip, int port);
         void send_udp(const char *buffer);
         void close_udp();
+        bool init(int fd);
         char* get_response(int fd, int len);
         void flush(int fd);
         bool verify(std::string cmd);

@@ -36,6 +36,62 @@ naiipm::~naiipm()
     }
 }
 
+//Initialize the iPM device. Returns a verified list of device addresses
+// that may be shorter than the list passed in if some addresses did not
+// pass verification.
+bool naiipm::init(int fd)
+{
+
+    flush(fd);
+
+    // Verify device existence at all addresses
+    std::cout << "This ipm has " << numAddr() << " active addresses"
+        << std::endl;
+    for (int i=0; i < atoi(numAddr()); i++)
+    {
+        std::string msg;
+        parse_addrInfo(i);
+        std::cout << "Info for address " << i << " is " << addr(i)
+            << std::endl;
+        bool status = setActiveAddress(fd, i);
+        // TBD: If command failed (corruption) then what?
+
+        // Turn Device OFF, wait > 100ms then turn ON to reset state
+        msg = "OFF";
+        if(not send_command(fd, msg)) { return false; }
+
+        sleep(.11);  // Wait > 100ms
+
+        msg = "RESET";
+        if(not send_command(fd, msg)) { return false; }
+
+        // Query Serial Number
+        msg = "SERNO?";
+        if(not send_command(fd, msg))
+        {
+            return false;
+            // TBD: If SERNO query fails, remove address from list, but
+            // continue with other addresses. decrease numAddr by 1 and
+            // remove addr(i) from array. Log error.
+        }
+        // Query Firmware Version
+        msg = "VER?";
+        if(not send_command(fd, msg)) { return false; }
+
+        // Execute build-in self test
+        msg = "TEST";
+        if(not send_command(fd, msg)) { return false; }
+        msg = "BITRESULT?";
+        if(not send_command(fd, msg)) { return false; }
+        status = parseData(msg, 0);  // parse binary part of BITRESULT?
+        std::cout << std::boolalpha << "Status is " << status << std::endl;
+
+
+    }
+
+    return true;
+}
+
 // Establish connection to iPM
 int naiipm::open_port(const char *port)
 {
@@ -353,7 +409,7 @@ void naiipm::flush(int fd)
 {
     if (tcflush(fd, TCIOFLUSH) == -1)
     {
-        std::cout << errno << std::endl;
+        std::cout << "Flush returned error " << errno << std::endl;
     }
 
 }
