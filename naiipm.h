@@ -50,7 +50,11 @@ class naiipm
         naiipm();
         ~naiipm();
 
-        char *buffer = (char *)malloc(1000);
+        char *buffer = new char [1000];
+        char *bitdata = new char [25];
+        char *measuredata = new char [35];
+        char *statusdata = new char [13];
+        char *recorddata = new char [69];
 
         void printMenu();
         bool readInput(int fd);
@@ -147,7 +151,6 @@ class naiipm
 
         // Map message to data string
         typedef std::map<std::string, char*> IpmMap;
-        typedef std::pair<std::string, char*> IpmPair;
         IpmMap ipm_data;
 
 };

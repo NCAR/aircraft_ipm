@@ -12,13 +12,9 @@
 naiipm::naiipm()
 {
     // Initialize the binary data map
-    char *bitdata = (char *)malloc(25 * sizeof(char));
     bitdata[0] = '\0';
-    char *measuredata = (char *)malloc(35 * sizeof(char));
     measuredata[0] = '\0';
-    char *statusdata = (char *)malloc(13 * sizeof(char));
     statusdata[0] = '\0';
-    char *recorddata = (char *)malloc(69 * sizeof(char));
     recorddata[0] = '\0';
     ipm_data["BITRESULT?"] = bitdata;   // Query self test result
     ipm_data["MEASURE?"] = measuredata; // Device Measurement
@@ -29,10 +25,12 @@ naiipm::naiipm()
 
 naiipm::~naiipm()
 {
+    // Free variable memory
+    delete [] buffer;
     for (std::map<std::string, char *>::const_iterator it = ipm_data.begin();
             it !=ipm_data.end(); ++it)
     {
-        free(it->second);
+        delete [] it->second;
     }
 }
 
@@ -285,7 +283,7 @@ void naiipm::setData(std::string cmd, char *bitdata)
 {
     // free the previous binary data memory space
     // and update the map to point to the new space
-    free(ipm_data.find(cmd)->second);
+    delete [] ipm_data.find(cmd)->second;
     ipm_data[cmd] = bitdata;
 }
 
@@ -293,7 +291,7 @@ void naiipm::setData(std::string cmd, char *bitdata)
 char* naiipm::get_response(int fd, int len)
 {
     int n = 0, r = 0;
-    char *l = (char *)malloc((len+2) * sizeof(char));
+    char *l = new char [len+2];
     l[0] = '\0';
     std::cout << "len " << len << std::endl;
     while (true)
@@ -384,7 +382,7 @@ bool naiipm::send_command(int fd, std::string msg, std::string msgarg)
         printf("Device command %s ", msg);
         std::cout << "did not return expected response "
             << expected_response <<  std::endl;
-        free((char *)line);
+        delete [] (char *)line;
         return false;  // command failed
     }
 
@@ -400,7 +398,7 @@ bool naiipm::send_command(int fd, std::string msg, std::string msgarg)
 
     flush(fd);
 
-    free((char *)line);
+    delete [] (char *)line;
     return true;  // command succeeded
 }
 
@@ -489,10 +487,7 @@ bool naiipm::parseData(std::string cmd, int nphases)
 {
     // nphases can be 1 or 3. Any other value is ignored.
     // retrieve binary data
-    std::string datalen = ipm_commands.find(cmd)->second; // data length
-    std::cout << '{' << datalen << '}' << std::endl;
     std::cout << '{' << cmd << '}' << std::endl;
-    int dlen = stoi(datalen);
     char* data = getData(cmd); // data content
 
     // Create some pointers to access data of various lengths
