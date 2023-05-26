@@ -51,10 +51,6 @@ class naiipm
         ~naiipm();
 
         char *buffer = new char [1000];
-        char *bitdata = new char [25];
-        char *measuredata = new char [35];
-        char *statusdata = new char [13];
-        char *recorddata = new char [69];
 
         void printMenu();
         bool readInput(int fd);
@@ -66,7 +62,7 @@ class naiipm
         void send_udp(const char *buffer);
         void close_udp();
         bool init(int fd);
-        char* get_response(int fd, int len);
+        void get_response(int fd, int len);
         void flush(int fd);
         bool verify(std::string cmd);
         bool send_command(int fd, std::string msg, std::string msgarg = "");
@@ -114,7 +110,7 @@ class naiipm
         char* getData(std::string msg)
             { return ipm_data.find(msg)->second; }
 
-        void setData(std::string cmd, char * bitdata);
+        void setData(std::string cmd, int binlen);
 
         bool loop(int fd);
 
@@ -150,6 +146,10 @@ class naiipm
         };
 
         // Map message to data string
+        char *bitdata = new char [25];
+        char *measuredata = new char [35];
+        char *statusdata = new char [13];
+        char *recorddata = new char [69];
         typedef std::map<std::string, char*> IpmMap;
         IpmMap ipm_data;
 

@@ -279,20 +279,18 @@ bool naiipm::loop(int fd)
 
 }
 
-void naiipm::setData(std::string cmd, char *bitdata)
+void naiipm::setData(std::string cmd, int len)
 {
     // free the previous binary data memory space
     // and update the map to point to the new space
-    delete [] ipm_data.find(cmd)->second;
-    ipm_data[cmd] = bitdata;
+    memcpy(ipm_data[cmd], buffer, len);
 }
 
 // read response from iPM
-char* naiipm::get_response(int fd, int len)
+void naiipm::get_response(int fd, int len)
 {
     int n = 0, r = 0;
-    char *l = new char [len+2];
-    l[0] = '\0';
+    buffer[0] = '\0';
     std::cout << "len " << len << std::endl;
     while (true)
     {
@@ -306,7 +304,7 @@ char* naiipm::get_response(int fd, int len)
             if (c == '\0') {
                 std::cout << "Found a null" << std::endl;
             }
-            l[n] = c;
+            buffer[n] = c;
             if (c == '\n') { // found linefeed
                 break;
             }
@@ -325,21 +323,19 @@ char* naiipm::get_response(int fd, int len)
         }
 
         // if receive len chars without an endline, return anyway
-	// (handles binary data)
+        // (handles binary data)
         if (n > (len - 1))
         {
-	    n--;  // decrement char count since never found linefeed
-	    break;
-	}
+            n--;  // decrement char count since never found linefeed
+            break;
+        }
 
         // TBD: If iPM never returns expected number of bytes, timeout
         // Currently have RECORD? not returning enough data so can test
         // this.
     }
 
-    l[n+1] = '\0'; // terminate the string
-
-    return(l);
+    buffer[n+1] = '\0'; // terminate the string
 }
 
 // send command to iPM and verify response
@@ -374,15 +370,14 @@ bool naiipm::send_command(int fd, std::string msg, std::string msgarg)
     // required.
 
     // Get response from ipm
-    char * line = get_response(fd, int(expected_response.length()));
-    std::cout << "Received " << line << std::endl;
+    get_response(fd, int(expected_response.length()));
+    std::cout << "Received " << buffer << std::endl;
 
-    if(line != expected_response)
+    if(buffer != expected_response)
     {
         printf("Device command %s ", msg);
         std::cout << "did not return expected response "
             << expected_response <<  std::endl;
-        delete [] (char *)line;
         return false;  // command failed
     }
 
@@ -390,15 +385,14 @@ bool naiipm::send_command(int fd, std::string msg, std::string msgarg)
     // returned as first response to query.
     if (ipm_data.find(msg) != ipm_data.end()) // cmd returns data
     {
-        int binlen = std::stoi(line);
+        int binlen = std::stoi(buffer);
         std::cout << "Now get " << binlen << " bytes" << std::endl;
-        char* data = get_response(fd, binlen);
-        setData(msg, data);
+        get_response(fd, binlen);
+        setData(msg, binlen);
     }
 
     flush(fd);
 
-    delete [] (char *)line;
     return true;  // command succeeded
 }
 
