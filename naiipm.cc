@@ -375,9 +375,8 @@ bool naiipm::send_command(int fd, std::string msg, std::string msgarg)
 
     if(buffer != expected_response)
     {
-        printf("Device command %s ", msg);
-        std::cout << "did not return expected response "
-            << expected_response <<  std::endl;
+        std::cout << "Device command " << msg << "did not return "
+            << "expected response " << expected_response <<  std::endl;
         return false;  // command failed
     }
 
