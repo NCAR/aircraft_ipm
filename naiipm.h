@@ -33,12 +33,6 @@ struct
 } record_1phase;
 
 
-// unit conversions
-static float dV2V = 0.1; // 0.1 V to V
-static float dH2H = 0.1; // 0.1 Hz to Hz
-static float mV2V = 0.001;  // mV to V
-static float dp2p = 0.1; // 0.1 % to %
-
 
 /**
  * Class to initialize and control North Atlantic Industries
@@ -125,25 +119,12 @@ class naiipm
         int _numphases[8];
         int _procqueries[8];
         int _addrport[8];
-        bool _interactive = false;
+        bool _interactive;
         struct sockaddr_in servaddr;
-        //  AF_INET for IPv4/ AF_INET6 for IPv6
-        //  SOCK_STREAM for TCP / SOCK_DGRAM for UDP
-        int sock = socket(AF_INET, SOCK_DGRAM, 0);
+        int sock;
 
         // Map message to expected response
-        std::map<std::string, std::string>ipm_commands = {
-            { "OFF",        "OK\n"},       // Turn Device OFF
-            { "RESET",      "OK\n"},       // Turn Device ON (reset)
-            { "SERNO?",     "200728\n"}, // Query Serial number
-            { "VER?",       "VER A022(L) 2018-11-13\n"}, // Query Firmware Ver
-            { "TEST",       "OK\n"},       // Execute build-in self test
-            { "BITRESULT?", "24\n"},       // Query self test result
-            { "ADR",        ""},           // Device Address Selection
-            { "MEASURE?",   "34\n"},       // Device Measurement
-            { "STATUS?",    "12\n"},       // Device Status
-            { "RECORD?",    "68\n"},       // Device Statistics
-        };
+        std::map<std::string, std::string>_ipm_commands;
 
         // Map message to data string
         char bitdata[25];
@@ -152,6 +133,12 @@ class naiipm
         char recorddata[69];
         typedef std::map<std::string, char*> IpmMap;
         IpmMap ipm_data;
+
+        // unit conversions
+        float _dV2V; // 0.1 V to V
+        float _dH2H; // 0.1 Hz to Hz
+        float _mV2V;  // mV to V
+        float _dp2p; // 0.1 % to %
 
 };
 

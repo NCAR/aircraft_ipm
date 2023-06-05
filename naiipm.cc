@@ -9,8 +9,29 @@
 
 #include "naiipm.h"
 
-naiipm::naiipm()
+naiipm::naiipm():_interactive(false)
 {
+    // unit conversions
+    _dV2V = 0.1; // 0.1 V to V
+    _dH2H = 0.1; // 0.1 Hz to Hz
+    _mV2V = 0.001;  // mV to V
+    _dp2p = 0.1; // 0.1 % to %
+
+    // Map message to expected response
+    _ipm_commands =
+    {
+        { "OFF",        "OK\n"},       // Turn Device OFF
+        { "RESET",      "OK\n"},       // Turn Device ON (reset)
+        { "SERNO?",     "200728\n"}, // Query Serial number
+        { "VER?",       "VER A022(L) 2018-11-13\n"}, // Query Firmware Ver
+        { "TEST",       "OK\n"},       // Execute build-in self test
+        { "BITRESULT?", "24\n"},       // Query self test result
+        { "ADR",        ""},           // Device Address Selection
+        { "MEASURE?",   "34\n"},       // Device Measurement
+        { "STATUS?",    "12\n"},       // Device Status
+        { "RECORD?",    "68\n"},       // Device Statistics
+    };
+
     // Initialize the binary data map
     bitdata[0] = '\0';
     measuredata[0] = '\0';
@@ -148,6 +169,10 @@ void naiipm::close_port(int fd)
 // Create UDP socket to send packets to nidas
 void naiipm::open_udp(const char *ip, int port)
 {
+    //  AF_INET for IPv4/ AF_INET6 for IPv6
+    //  SOCK_STREAM for TCP / SOCK_DGRAM for UDP
+    sock = socket(AF_INET, SOCK_DGRAM, 0);
+
     if (sock < 0)
     {
         std::cout << "Socket creation failed" << std::endl;
@@ -339,9 +364,9 @@ bool naiipm::send_command(int fd, std::string msg, std::string msgarg)
 
     std::cout << "Got message " << msg << std::endl;
     // Find expected response for this message
-    auto response = ipm_commands.find(msg);
+    auto response = _ipm_commands.find(msg);
     std::string expected_response = response->second;
-    // std::string expected_response = ipm_commands.find(msg)->second;
+    // std::string expected_response = _ipm_commands.find(msg)->second;
     std::cout << "Expect response " << expected_response << std::endl;
 
     // Send message to ipm
@@ -405,7 +430,7 @@ void naiipm::printMenu()
     std::cout << "Type one of the following iPM commands or" << std::endl;
     std::cout << "enter 'q' to quit" << std::endl;
     std::cout << "=========================================" << std::endl;
-    for (auto msg : ipm_commands) {
+    for (auto msg : _ipm_commands) {
         std::cout << msg.first << std::endl;
     }
 }
@@ -413,7 +438,7 @@ void naiipm::printMenu()
 bool naiipm::verify(std::string cmd)
 {
     // Confirm command is in list of acceptable command
-    if (not ipm_commands.count(cmd))
+    if (not _ipm_commands.count(cmd))
     {
         std::cout << "Command " << cmd << " is invalid. Please enter a " <<
             "valid command" << std::endl;
@@ -508,11 +533,11 @@ bool naiipm::parseData(std::string cmd, int nphases)
             << std::endl;
         record_1phase.EVTYPE = cp[0];
         sprintf(buffer,"RECORD,%.2f,%.2f,%.2f,%.2f,%.2f,%.2f,%.4f,%.4f,%.2f,%.2f,%.2f,%.2f\r\n",
-                record_1phase.FREQMAX * dH2H, record_1phase.FREQMIN * dH2H,
-                record_1phase.VRMSMAXA * dV2V, record_1phase.VRMSMINA * dV2V,
-                record_1phase.VPKMAXA * dV2V, record_1phase.VPKMINA * dV2V,
-                record_1phase.VDCMAXA * mV2V, record_1phase.VDCMINA * mV2V,
-                record_1phase.THDMAXA * dp2p, record_1phase.THDMINA * dp2p,
+                record_1phase.FREQMAX * _dH2H, record_1phase.FREQMIN * _dH2H,
+                record_1phase.VRMSMAXA * _dV2V, record_1phase.VRMSMINA * _dV2V,
+                record_1phase.VPKMAXA * _dV2V, record_1phase.VPKMINA * _dV2V,
+                record_1phase.VDCMAXA * _mV2V, record_1phase.VDCMINA * _mV2V,
+                record_1phase.THDMAXA * _dp2p, record_1phase.THDMINA * _dp2p,
                 (float)record_1phase.TIME, (float)record_1phase.EVTYPE
                 );
         send_udp(buffer);
