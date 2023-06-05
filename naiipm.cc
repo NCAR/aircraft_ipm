@@ -25,13 +25,6 @@ naiipm::naiipm()
 
 naiipm::~naiipm()
 {
-    // Free variable memory
-    delete [] buffer;
-    for (std::map<std::string, char *>::const_iterator it = ipm_data.begin();
-            it !=ipm_data.end(); ++it)
-    {
-        delete [] it->second;
-    }
 }
 
 //Initialize the iPM device. Returns a verified list of device addresses

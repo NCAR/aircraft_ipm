@@ -50,7 +50,7 @@ class naiipm
         naiipm();
         ~naiipm();
 
-        char *buffer = new char [1000];
+        char buffer[1000];
 
         void printMenu();
         bool readInput(int fd);
@@ -146,10 +146,10 @@ class naiipm
         };
 
         // Map message to data string
-        char *bitdata = new char [25];
-        char *measuredata = new char [35];
-        char *statusdata = new char [13];
-        char *recorddata = new char [69];
+        char bitdata[25];
+        char measuredata[35];
+        char statusdata[13];
+        char recorddata[69];
         typedef std::map<std::string, char*> IpmMap;
         IpmMap ipm_data;
 
