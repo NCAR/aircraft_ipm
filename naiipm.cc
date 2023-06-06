@@ -6,6 +6,7 @@
 #include <fcntl.h>
 #include <termios.h>
 #include <bitset>
+#include <cstdio>
 
 #include "naiipm.h"
 
