@@ -188,8 +188,12 @@ void naiipm::open_udp(const char *ip, int port)
 void naiipm::send_udp(const char *buf)
 {
     std::cout << "sending UDP string " << buf << std::endl;
-    sendto(sock, (const char *)buf, strlen(buf), MSG_CONFIRM,
-            (const struct sockaddr *) &servaddr, sizeof(servaddr));
+    if (sendto(sock, (const char *)buf, strlen(buf), 0,
+            (const struct sockaddr *) &servaddr, sizeof(servaddr)) == -1)
+    {
+        std::cout << "Sending packet to nidas returned error " << errno
+            << std::endl;
+    }
 }
 
 // Close UDP port
