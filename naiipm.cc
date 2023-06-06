@@ -33,14 +33,10 @@ naiipm::naiipm():_interactive(false)
     };
 
     // Initialize the binary data map
-    bitdata[0] = '\0';
-    measuredata[0] = '\0';
-    statusdata[0] = '\0';
-    recorddata[0] = '\0';
-    ipm_data["BITRESULT?"] = bitdata;   // Query self test result
-    ipm_data["MEASURE?"] = measuredata; // Device Measurement
-    ipm_data["STATUS?"] = statusdata;   // Device Status
-    ipm_data["RECORD?"] = recorddata;   // Device Statistics
+    _ipm_data["BITRESULT?"] = _bitdata;   // Query self test result
+    _ipm_data["MEASURE?"] = _measuredata; // Device Measurement
+    _ipm_data["STATUS?"] = _statusdata;   // Device Status
+    _ipm_data["RECORD?"] = _recorddata;   // Device Statistics
 
 }
 
@@ -171,31 +167,31 @@ void naiipm::open_udp(const char *ip, int port)
 {
     //  AF_INET for IPv4/ AF_INET6 for IPv6
     //  SOCK_STREAM for TCP / SOCK_DGRAM for UDP
-    sock = socket(AF_INET, SOCK_DGRAM, 0);
+    _sock = socket(AF_INET, SOCK_DGRAM, 0);
 
-    if (sock < 0)
+    if (_sock < 0)
     {
         std::cout << "Socket creation failed" << std::endl;
         exit(EXIT_FAILURE);
     }
-    memset(&servaddr, 0, sizeof(servaddr));
-    servaddr.sin_family = AF_INET;
-    servaddr.sin_port = htons(30101);
-    servaddr.sin_addr.s_addr = inet_addr(ip);
+    memset(&_servaddr, 0, sizeof(_servaddr));
+    _servaddr.sin_family = AF_INET;
+    _servaddr.sin_port = htons(30101);
+    _servaddr.sin_addr.s_addr = inet_addr(ip);
 }
 
 // Send a UDP message to nidas
 void naiipm::send_udp(const char *buf)
 {
     std::cout << "sending UDP string " << buf << std::endl;
-    sendto(sock, (const char *)buf, strlen(buf), MSG_CONFIRM,
-            (const struct sockaddr *) &servaddr, sizeof(servaddr));
+    sendto(_sock, (const char *)buf, strlen(buf), MSG_CONFIRM,
+            (const struct sockaddr *) &_servaddr, sizeof(_servaddr));
 }
 
 // Close UDP port
 void naiipm::close_udp()
 {
-    close(sock);
+    close(_sock);
 }
 
 // Parse the addrInfo block from the command line
@@ -301,7 +297,7 @@ void naiipm::setData(std::string cmd, int len)
 {
     // free the previous binary data memory space
     // and update the map to point to the new space
-    memcpy(ipm_data[cmd], buffer, len);
+    memcpy(_ipm_data[cmd], buffer, len);
 }
 
 // read response from iPM
@@ -400,7 +396,7 @@ bool naiipm::send_command(int fd, std::string msg, std::string msgarg)
 
     // Read binary part of response. Length of binary response was
     // returned as first response to query.
-    if (ipm_data.find(msg) != ipm_data.end()) // cmd returns data
+    if (_ipm_data.find(msg) != _ipm_data.end()) // cmd returns data
     {
         int binlen = std::stoi(buffer);
         std::cout << "Now get " << binlen << " bytes" << std::endl;
@@ -484,7 +480,7 @@ bool naiipm::readInput(int fd)
 
     // Check if command has binary data component. If so, parse it into
     // it's component variables.
-    if (ipm_data.find(cmd) != ipm_data.end())  // found cmd in binary map
+    if (_ipm_data.find(cmd) != _ipm_data.end())  // found cmd in binary map
     {
         // Parse binary data
         // TBD: Determine desired funtionality re: 1- or 3-phase here
