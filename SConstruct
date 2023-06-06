@@ -1,7 +1,6 @@
 env = Environment()
 sources = Split("""
 ctrl.cc
-naiipm.h
 naiipm.cc
 """)
 

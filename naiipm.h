@@ -3,11 +3,8 @@
  ********************************************************************
 */
 
-#include <cstdlib>
 #include <map>
-#include <sys/socket.h>
 #include <arpa/inet.h>
-#include <string.h>
 #include <unistd.h>
 #include <iostream>
 
