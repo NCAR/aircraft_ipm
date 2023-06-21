@@ -17,11 +17,12 @@ import numpy
 # dictionary...
 
 # Some sample data from instrument runs in the DSM lab
-
-TEST_DATA = '\0\0?\0?\0\0\0\0\0P\0\0\0\0\0#\0?\0?\0L\x02\n'  # sample 24 byte data
-MEASURE_DATA = 'X\0\0\0P\0?\0?\0\0\0#\0#\0\0\0%\0\0\0\0\0?\0?\0?\0\0\0\0\0\n'  # 34 byte data
-STATUS_DATA = '\0\0\0\0\0\0\0\0\0\0\0\0\n'  # 12 byte data
-RECORD_DATA = '\0\09\0\0\0???\0\0\0\0\0\0\0\0\0?\0?\0?\0?\0\0\0\0\0X\0X\0\0\0B\0\0\0/\0\0\0\0\0\0?\0?\0\0?\0;\0\0\0C\0\0\0\0\0M?/?\n'  # 68 byte data
+TEST_DATA = '\0\0?\0?\0\0\0\0\0P\0\0\0\0\0#\0?\0?\0L\x02\n'  # 24 bytes
+MEASURE_DATA = 'X\0\0\0P\0?\0?\0\0\0#\0#\0\0\0%\0\0\0\0\0?' \
+        '\0?\0?\0\0\0\0\0\n'  # 34 bytes
+STATUS_DATA = '\0\0\0\0\0\0\0\0\0\0\0\0\n'  # 12 bytes
+RECORD_DATA = '\0\09\0\0\0???\0\0\0\0\0\0\0\0\0?\0?\0?\0?\0\0\0\0\0X\0X\0\0' \
+        '\0B\0\0\0/\0\0\0\0\0\0?\0?\0\0?\0;\0\0\0C\0\0\0\0\0M?/?\n'  # 68 bytes
 
 # Tuple to store iPM commands and responses
 Command = namedtuple('Command', ['msg', 'response', 'bytes'])
