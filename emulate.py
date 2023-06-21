@@ -115,23 +115,23 @@ class IpmEmulator():
             msg = rdata.decode('UTF-8').rstrip()
 
             if (msg != ''):
-                print('Received command ' + msg);
+                print('Received command ' + msg)
 
-            # On receiipt of 'x', quit cycling and exit
+            # On receipt of 'x', quit cycling and exit
             if msg == 'x':
                 return
 
             for cmd in sequence:
-                fullcmd = cmd.msg #+ '\n' # Add line feed to expected string
+                fullcmd = cmd.msg  # Add line feed to expected string
                 if fullcmd == msg:
                     logger.debug(fullcmd)
-                    print('Sending response ' + str(cmd.response.encode('utf-8')))
+                    print('Sending response ' +
+                          str(cmd.response.encode('utf-8')))
                     self.sport.write(cmd.response.encode('utf-8'))
                     # If the command has a binary component, send that too
-                    bval=""
                     if cmd.bytes != '':
                         print('Sending binary data ' + str(cmd.bytes))
-                        print(len(cmd.bytes))
+                        print('of length ' + str(len(cmd.bytes)))
                         self.sport.write(cmd.bytes.encode('utf-8'))
                     sys.stdout.flush()
 
