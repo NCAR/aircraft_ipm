@@ -395,7 +395,7 @@ bool naiipm::send_command(int fd, std::string msg, std::string msgarg)
     get_response(fd, int(expected_response.length()));
     std::cout << "Received " << buffer << std::endl;
 
-    if (msg == "SERNO?")  // Version changes frequently, so just check regex
+    if (msg == "SERNO?")  // Serial # changes frequently, so just check regex
     {
         std::string str = (std::string)buffer;
         std::regex r(expected_response);
