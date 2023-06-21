@@ -8,6 +8,7 @@
 #include <string.h>
 #include <bitset>
 #include <cstdio>
+#include <regex>
 
 #include "naiipm.h"
 
@@ -24,7 +25,7 @@ naiipm::naiipm():_interactive(false)
     {
         { "OFF",        "OK\n"},       // Turn Device OFF
         { "RESET",      "OK\n"},       // Turn Device ON (reset)
-        { "SERNO?",     "200728\n"}, // Query Serial number
+        { "SERNO?",     "^[0-9]{6}\n$"}, // Query Serial number (which changes)
         { "VER?",       "VER A022(L) 2018-11-13\n"}, // Query Firmware Ver
         { "TEST",       "OK\n"},       // Execute build-in self test
         { "BITRESULT?", "24\n"},       // Query self test result
@@ -394,9 +395,21 @@ bool naiipm::send_command(int fd, std::string msg, std::string msgarg)
     get_response(fd, int(expected_response.length()));
     std::cout << "Received " << buffer << std::endl;
 
-    if(buffer != expected_response)
+    if (msg == "SERNO?")  // Version changes frequently, so just check regex
     {
-        std::cout << "Device command " << msg << "did not return "
+        std::string str = (std::string)buffer;
+        std::regex r(expected_response);
+        std::smatch m;
+        if (not std::regex_match(str, m, r))
+        {
+            std::cout << "Device command " << msg << " did not return "
+                << "expected response " << expected_response <<  std::endl;
+            return false;  // command failed
+        }
+    }
+    else if(buffer != expected_response)
+    {
+        std::cout << "Device command " << msg << " did not return "
             << "expected response " << expected_response <<  std::endl;
         return false;  // command failed
     }
