@@ -230,7 +230,7 @@ bool naiipm::setActiveAddress(int fd, int i)
     std::string msg = "ADR";
     char msgarg[8];
 
-    sprintf(msgarg, "%d", addr(i));
+    snprintf(msgarg, 8, "%d", addr(i));
     if(not send_command(fd, msg, msgarg)) { return false; }
 
     return true;
@@ -535,7 +535,8 @@ bool naiipm::parseData(std::string cmd, int nphases)
         std::cout << record_1phase.TIME/60000 << " minutes since power-up"
             << std::endl;
         record_1phase.EVTYPE = cp[0];
-        sprintf(buffer,"RECORD,%.2f,%.2f,%.2f,%.2f,%.2f,%.2f,%.4f,%.4f,%.2f,%.2f,%.2f,%.2f\r\n",
+        snprintf(buffer, 255, "RECORD,%.2f,%.2f,%.2f,%.2f,%.2f,%.2f, "
+                "%.4f,%.4f,%.2f,%.2f,%.2f,%.2f\r\n",
                 record_1phase.FREQMAX * _dH2H, record_1phase.FREQMIN * _dH2H,
                 record_1phase.VRMSMAXA * _dV2V, record_1phase.VRMSMINA * _dV2V,
                 record_1phase.VPKMAXA * _dV2V, record_1phase.VPKMINA * _dV2V,
