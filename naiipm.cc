@@ -70,7 +70,8 @@ bool naiipm::init(int fd)
         msg = "OFF";
         if(not send_command(fd, msg)) { return false; }
 
-        sleep(.11);  // Wait > 100ms
+        unsigned int microseconds = 110000;
+        usleep(microseconds);  // Wait > 100ms
 
         msg = "RESET";
         if(not send_command(fd, msg)) { return false; }
