@@ -19,6 +19,7 @@ void processArgs(int argc, char *argv[])
     int opt;
     int errflag = 0, nopt = 0;
     bool p = false;
+    bool s = false;
     bool m = false;
     bool r = false;
     bool b = false;
@@ -28,7 +29,7 @@ void processArgs(int argc, char *argv[])
 
     // Options between colons require an argument
     // Options after second colon do not.
-    while((opt = getopt(argc, argv, ":p:m:r:b:n:0:1:2:3:4:5:6:7:i")) != -1)
+    while((opt = getopt(argc, argv, ":p:s:m:r:b:n:0:1:2:3:4:5:6:7:i")) != -1)
     {
         nopt++;
         switch(opt)
@@ -36,6 +37,10 @@ void processArgs(int argc, char *argv[])
             case 'p':  // Port the iPM is connected to
                 p = true;
                 ipm.setPort(optarg);
+                break;
+            case 's':  // Port to send status messages
+                s = true;
+		// TBD: not yet implemented
                 break;
             case 'm':  // STATUS & MEASURE collection rate (hz)
                 m = true;
@@ -92,6 +97,7 @@ void processArgs(int argc, char *argv[])
     {
         std::cout << "Usage:" << std::endl;
         std::cout << "\t-p <port>\tport iPM is connected to" << std::endl;
+        std::cout << "\t-s <port>\tport to send status msgs to" << std::endl; // ??? - look at specs!
         std::cout << "\t-m <measurerate>\tSTATUS & MEASURE collection rate "
             << " (hz)" << std::endl;
         std::cout << "\t-r <recordperiod>\tPeriod of RECORD queries (minutes)"
@@ -112,7 +118,7 @@ int main(int argc, char * argv[])
     int fd = ipm.open_port(ipm.Port());
 
     // TBD: Get ip address and port from xml.
-    ipm.open_udp("10.0.0.137", 30101);
+    ipm.open_udp("192.168.84.2", 30101);
 
     bool status = true;
     if (ipm.Interactive())
@@ -134,16 +140,14 @@ int main(int argc, char * argv[])
         }
 
         // Cycle on requested commands
-        int i=0;
-        while (i < 3)
+        while (true)
         {
             // TBD:: log status
             status = ipm.loop(fd);
-            // For testing, sleep between calls
-            sleep(1);  // TBD: implement recordPeriod & measureRate in loop fn
-            i++;
         }
     }
+
+    std::cout << "Exiting ipm_ctrl" << std::endl;
 
     // Close socket descriptor
     ipm.close_udp();
