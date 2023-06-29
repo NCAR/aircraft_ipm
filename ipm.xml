@@ -142,8 +142,18 @@
 
 
     <dsm id="99" location="acserver" name="acserver" derivedData="sock::31000" statusAddr="sock:192.168.84.2:30001">
-      <sensor ID="NAIiPM" class="raf.UDPiPMSensor" devicename="usock::30110" id="6200" timeout="10">
-          <parameter name="device" type="string" value="/tmp/tmpexga4exi/userport"/>
+      <sensor IDREF="iPM_1phase" devicename="usock::30101" id="850" suffix="_iPM1"/>
+      <sensor IDREF="iPM_1phase" devicename="usock::30102" id="860" suffix="_iPM2"/>
+      <sensor IDREF="iPM_3phase" devicename="usock::30103" id="870" suffix="_iPM3"/>
+        <output class="RawSampleOutputStream">
+          <socket type="mcrequest"/>
+        </output>
+    </dsm>
+
+    <dsm name="dsmspare" location="bench" id="49" rserialPort="30002" derivedData="sock::31000" statusAddr="sock::30001">
+
+      <sensor ID="NAIiPM" class="raf.UDPiPMSensor" devicename="usock::30222" id="6200" timeout="10">
+          <parameter name="device" type="string" value="/dev/ttyS0"/>
           <parameter name="status_port" type="int" value="30222"/>
           <parameter name="measurerate" type="int" value="1"/>
           <parameter name="recordperiod" type="int" value="10"/>
@@ -153,9 +163,6 @@
           <parameter name="dev1" type="string" value="1,1,5,30102"/>  <!-- addr, numphases, procqueries, port -->
           <parameter name="dev2" type="string" value="4,3,7,30103"/>  <!-- addr, numphases, procqueries, port -->
       </sensor>
-      <sensor IDREF="iPM_1phase" devicename="usock::30101" id="850" suffix="_iPM1"/>
-      <sensor IDREF="iPM_1phase" devicename="usock::30102" id="860" suffix="_iPM2"/>
-      <sensor IDREF="iPM_3phase" devicename="usock::30103" id="870" suffix="_iPM3"/>
       <output class="RawSampleOutputStream">
         <socket type="mcrequest"/>
       </output>
