@@ -15,10 +15,8 @@
 naiipm::naiipm():_interactive(false)
 {
     // unit conversions
-    _dV2V = 0.1; // 0.1 V to V
-    _dH2H = 0.1; // 0.1 Hz to Hz
-    _mV2V = 0.001;  // mV to V
-    _dp2p = 0.1; // 0.1 % to %
+    _deci = 0.1;
+    _milli = 0.001;
 
     // Map message to expected response
     _ipm_commands =
@@ -40,6 +38,8 @@ naiipm::naiipm():_interactive(false)
     _ipm_data["MEASURE?"] = _measuredata; // Device Measurement
     _ipm_data["STATUS?"] = _statusdata;   // Device Status
     _ipm_data["RECORD?"] = _recorddata;   // Device Statistics
+
+    _recordCount = 0;
 
 }
 
@@ -135,9 +135,9 @@ int naiipm::open_port(const char *port)
         }
 
         // set bit input and output baud rate
-        if (atoi(baud()) != 115200)
+        if (atoi(_baudRate) != 115200)
         {
-            // log unknown speed
+            // TBD: default to 115200
             exit(1);
         }
         if (cfsetspeed(&port_settings, B115200) == -1)
@@ -180,7 +180,7 @@ void naiipm::open_udp(const char *ip, int port)
     }
     memset(&_servaddr, 0, sizeof(_servaddr));
     _servaddr.sin_family = AF_INET;
-    _servaddr.sin_port = htons(30101);
+    _servaddr.sin_port = htons(port);
     _servaddr.sin_addr.s_addr = inet_addr(ip);
 }
 
@@ -242,6 +242,12 @@ bool naiipm::loop(int fd)
 {
     std::string msg;
 
+    // Set the recordPeriod per measureRate so can call RECORD only every
+    // recordFreq times through this loop.
+    // measureRate is in hz; recordPeriod in minutes
+    float recordFreq = (int)(atoi(_recordPeriod)*60.0)/atoi(_measureRate);
+    _recordCount++;
+
     for (int i=0; i < atoi(numAddr()); i++)
         {
             // ‘numphases’ (integer) indicates whether 1 phase, or 3-phases of
@@ -249,7 +255,7 @@ bool naiipm::loop(int fd)
             int nphases = numphases(i);
             if (nphases != 1 && nphases != 3)
             {
-                //log error
+                //TBD: log error
                 exit(1);
             }
 
@@ -269,11 +275,15 @@ bool naiipm::loop(int fd)
                 std::bitset<4> r = x;
                 if ((r &= 0b0100) == 4)  // RECORD command requested
                 {
-                    msg = "RECORD?";
-                    if(not send_command(fd, msg)) { return false; }
-                    bool status = parseData(msg, nphases);
-                    std::cout << std::boolalpha << "Status is " << status
-                        << std::endl;
+	            if (_recordCount >= recordFreq)
+		    {
+                        msg = "RECORD?";
+                        if(not send_command(fd, msg)) { return false; }
+                        bool status = parseData(msg, nphases);
+                        std::cout << std::boolalpha << "Status is " << status
+                            << std::endl;
+		        _recordCount = 0;
+		    }
                 }
                 std::bitset<4> m = x;
                 if ((m &= 0b0010) == 2)  // MEASURE command requested
@@ -294,8 +304,18 @@ bool naiipm::loop(int fd)
                         << std::endl;
                 }
             }
-
         }
+
+        // rate for STATUS and MEASURE is quicker than RECORD, so use that
+	// as the base. Rather than setting a timer, to get responses at the
+	// exact interval requested, since this is housekeeping data and timing
+	// is not critical, set sleep so we get at least one response per
+	// requested time period. From test runs on Gigajoules, request for all
+	// three commands returns in ~0.2 seconds, so subtract that from
+	// requested rate.
+	// TBD: Will likely need to adjust this when the iPM is mounted on the
+	// aircraft.
+        usleep((atoi(_measureRate) - 0.2) * 1000000);
 
     return true;
 
@@ -312,12 +332,38 @@ void naiipm::setData(std::string cmd, int len)
 void naiipm::get_response(int fd, int len)
 {
     int n = 0, r = 0;
+    char c;
+    int ret;
+    fd_set set;
     buffer[0] = '\0';
     std::cout << "len " << len << std::endl;
     while (true)
     {
-        char c;
-        int ret = read(fd, &c, 1);
+	// If iPM never returns expected number of bytes, timeout
+        struct timeval timeout;
+        FD_ZERO(&set);
+        FD_SET(fd, &set);
+
+        timeout.tv_sec = 0;  // 100ms timeout
+        timeout.tv_usec = 100000;
+
+        int rv = select(fd + 1, &set, NULL, NULL, &timeout);
+        if (rv == -1)
+        {
+            perror("select()");
+            break; /* an error occurred */
+        }
+        else if (rv == 0)
+        {
+            std::cout << "timeout" << std::endl; /* a timeout occured */
+            break;
+        }
+        else
+        {
+            ret = read(fd, &c, 1);
+            std::cout << ret << std::endl;
+        }
+
         if (ret > 0)  // successful read
         {
             std::bitset<8> x(c);
@@ -342,7 +388,12 @@ void naiipm::get_response(int fd, int len)
         } else if (ret != -1)  // read did not return timeout
         {
             std::cout << "unknown response " << c << std::endl;
+	} else if (ret == -1)  // Resource temporarily unavailable
+        {
+            std::cout << "Read from iPM returned error " <<strerror(errno)
+		<< std::endl;
         }
+
 
         // if receive len chars without an endline, return anyway
         // (handles binary data)
@@ -351,10 +402,6 @@ void naiipm::get_response(int fd, int len)
             n--;  // decrement char count since never found linefeed
             break;
         }
-
-        // TBD: If iPM never returns expected number of bytes, timeout
-        // Currently have RECORD? not returning enough data so can test
-        // this.
     }
 
     buffer[n+1] = '\0'; // terminate the string
@@ -370,7 +417,6 @@ bool naiipm::send_command(int fd, std::string msg, std::string msgarg)
     // Find expected response for this message
     auto response = _ipm_commands.find(msg);
     std::string expected_response = response->second;
-    // std::string expected_response = _ipm_commands.find(msg)->second;
     std::cout << "Expect response " << expected_response << std::endl;
 
     // Send message to ipm
@@ -387,9 +433,6 @@ bool naiipm::send_command(int fd, std::string msg, std::string msgarg)
         std::cout << errno << std::endl;
     }
     std::cout << "Write completed" << std::endl;
-    // TBD: Need some sort of timeout here if instrument is hung and not
-    // sending anything back that lets user know a power cycle might be
-    // required.
 
     // Get response from ipm
     get_response(fd, int(expected_response.length()));
@@ -548,15 +591,46 @@ bool naiipm::parseData(std::string cmd, int nphases)
         std::cout << record_1phase.TIME/60000 << " minutes since power-up"
             << std::endl;
         record_1phase.EVTYPE = cp[0];
-        snprintf(buffer, 255, "RECORD,%.2f,%.2f,%.2f,%.2f,%.2f,%.2f, "
+        snprintf(buffer, 255, "RECORD,%.2f,%.2f,%.2f,%.2f,%.2f,%.2f,"
                 "%.4f,%.4f,%.2f,%.2f,%.2f,%.2f\r\n",
-                record_1phase.FREQMAX * _dH2H, record_1phase.FREQMIN * _dH2H,
-                record_1phase.VRMSMAXA * _dV2V, record_1phase.VRMSMINA * _dV2V,
-                record_1phase.VPKMAXA * _dV2V, record_1phase.VPKMINA * _dV2V,
-                record_1phase.VDCMAXA * _mV2V, record_1phase.VDCMINA * _mV2V,
-                record_1phase.THDMAXA * _dp2p, record_1phase.THDMINA * _dp2p,
+                record_1phase.FREQMAX * _deci, record_1phase.FREQMIN * _deci,
+                record_1phase.VRMSMAXA * _deci, record_1phase.VRMSMINA * _deci,
+                record_1phase.VPKMAXA * _deci, record_1phase.VPKMINA * _deci,
+                record_1phase.VDCMAXA * _milli, record_1phase.VDCMINA * _milli,
+                record_1phase.THDMAXA * _deci, record_1phase.THDMINA * _deci,
                 (float)record_1phase.TIME, (float)record_1phase.EVTYPE
                 );
+        send_udp(buffer);
+    }
+
+    if (cmd == "MEASURE?" && nphases == 1) {
+        // There is a typo in the programming manual. Byte should start at
+	// zero.
+        measure_1phase.FREQ = sp[0];
+        measure_1phase.VRMSA = sp[3];
+        measure_1phase.VPKA = sp[6];
+        measure_1phase.VDCA = sp[9];
+        measure_1phase.PHA = sp[12];
+        measure_1phase.THDA = cp[30];
+        measure_1phase.POWEROK = cp[33];
+        snprintf(buffer, 255, "MEASURE,%.2f,%.2f,%.2f,%.4f,%.2f,%.2f,"
+                "%d\r\n",
+                measure_1phase.FREQ * _deci, measure_1phase.VRMSA * _deci,
+                measure_1phase.VPKA * _deci, measure_1phase.VDCA * _milli,
+		measure_1phase.PHA * _deci, measure_1phase.THDA * _deci,
+                (int)measure_1phase.POWEROK
+                );
+        send_udp(buffer);
+    }
+
+    // TBD: Implement parsing of 3-phase data.
+
+    if (cmd == "STATUS?") {  // STATUS returns same UDP packet for both phases
+	status.OPSTATE = cp[0];
+	status.TRIPFLAGS = (((long)sp[2]) << 16) | sp[1];
+	status.CAUTIONFLAGS = (((long)sp[4]) << 16) | sp[3];
+        snprintf(buffer, 255, "STATUS,%d,%d,%d\r\n", status.OPSTATE,
+		 status.TRIPFLAGS, status.CAUTIONFLAGS);
         send_udp(buffer);
     }
 

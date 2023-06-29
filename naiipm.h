@@ -29,6 +29,23 @@ struct
     uint8_t EVTYPE;     // Event Type
 } record_1phase;
 
+struct
+{
+    uint16_t FREQ;      // AC Power Frequency
+    uint16_t VRMSA;     // Phase A RMS AC Voltage
+    uint16_t VPKA;      // Phase A Peak AC Voltage
+    uint16_t VDCA;      // Phase A Voltage, DC Component
+    uint16_t PHA;       // Phase A Voltage, AC Phase Angle
+    uint8_t THDA;       // Phase A Voltage THD
+    uint8_t POWEROK;    // Power OK, All phases
+} measure_1phase;
+
+struct
+{
+    uint8_t OPSTATE;        // Operational State
+    uint32_t TRIPFLAGS;     // Power Trip Flags, performance exceeds limit
+    uint32_t CAUTIONFLAGS;  // Power Caution Flags, marginal performance
+} status;
 
 
 /**
@@ -77,11 +94,10 @@ class naiipm
         bool send_command(int fd, std::string msg, std::string msgarg = "");
 
         const char* _measureRate;
-        const char* rate()      { return _measureRate; }
         const char* _recordPeriod;
-        const char* period()      { return _recordPeriod; }
         const char* _baudRate;
-        const char* baud()      { return _baudRate; }
+
+	int _recordCount;
 
         char* _addrinfo[8];
         char* addrInfo(int index)      { return _addrinfo[index]; }
@@ -130,10 +146,7 @@ class naiipm
         IpmMap _ipm_data;
 
         // unit conversions
-        float _dV2V; // 0.1 V to V
-        float _dH2H; // 0.1 Hz to Hz
-        float _mV2V;  // mV to V
-        float _dp2p; // 0.1 % to %
-
+        float _deci;   // 0.1
+        float _milli;  // 0.001
 };
 
