@@ -1,0 +1,20 @@
+# -*- python -*-
+
+Import('env')
+
+# I am not sure whether I want to use boost or googletest
+# so I currently have both while I investigate
+env.Append( LIBS = ['gtest_main', 'gtest'])
+sources = Split("""
+naiipm_gtest.cc
+""")
+
+g_test = env.Program(target = 'g_test', source = sources)
+env.Default(g_test)
+
+sources = Split("""
+naiipm_boost_test.cc
+""")
+
+b_test = env.Program(target = 'b_test', source = sources)
+env.Default(b_test)
