@@ -107,7 +107,8 @@ void processArgs(int argc, char *argv[])
             << std::endl;
         std::cout << "\t-# <addr,numphases,procqueries,port>\n"
             "\t\t\t\tnumber 0 to n-1 followed by info block" << std::endl;
-        std::cout << "\t-i\t\t\trun in interactive mode (optional)" << std::endl;
+        std::cout << "\t-i\t\t\trun in interactive mode (optional)"
+            << std::endl;
         exit(1);
     }
 }
