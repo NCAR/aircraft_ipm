@@ -96,18 +96,18 @@ void processArgs(int argc, char *argv[])
     if (errflag or not nopt or not p or not m or not r or not b or not n)
     {
         std::cout << "Usage:" << std::endl;
-        std::cout << "\t-p <port>\tport iPM is connected to" << std::endl;
-        std::cout << "\t-s <port>\tport to send status msgs to" << std::endl; // ??? - look at specs!
+        std::cout << "\t-p <port>\t\tport iPM is connected to" << std::endl;
+        std::cout << "\t-s <port>\t\tport to send status msgs to" << std::endl; // ??? - look at specs!
         std::cout << "\t-m <measurerate>\tSTATUS & MEASURE collection rate "
             << " (hz)" << std::endl;
-        std::cout << "\t-r <recordperiod>\tPeriod of RECORD queries (minutes)"
+        std::cout << "\t-r <recordperiod>\tperiod of RECORD queries (minutes)"
             << std::endl;
-        std::cout << "\t-b <baudrate>\tBaud rate" << std::endl;
-        std::cout << "\t-n <num_addr>\tnumber of active addresses on iPM"
+        std::cout << "\t-b <baudrate>\t\tbaud rate" << std::endl;
+        std::cout << "\t-n <num_addr>\t\tnumber of active addresses on iPM"
             << std::endl;
-        std::cout << "\t-#\tNumber 0 to n-1 followed by info block " <<
-            "(-# addr, numphases, procqueries, port" << std::endl;
-        std::cout << "\t-i\tRun in interactive mode (optional)" << std::endl;
+        std::cout << "\t-# <addr,numphases,procqueries,port>\n"
+            "\t\t\t\tnumber 0 to n-1 followed by info block" << std::endl;
+        std::cout << "\t-i\t\t\trun in interactive mode (optional)" << std::endl;
         exit(1);
     }
 }
