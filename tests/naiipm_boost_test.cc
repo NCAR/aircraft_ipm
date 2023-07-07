@@ -10,11 +10,14 @@ static naiipm ipm;
 BOOST_AUTO_TEST_SUITE(ipmTests)
 
 // Test storing and retrieving command line args
-BOOST_AUTO_TEST_CASE(testArgs)
+BOOST_AUTO_TEST_CASE(testSetGetNumAddr)
 {
     ipm.setNumAddr("1");
     BOOST_CHECK( atoi(ipm.numAddr())==1 );
+}
 
+BOOST_AUTO_TEST_CASE(testSetGetIpmPort)
+{
     ipm.setPort("/dev/ttyS0");
     BOOST_CHECK ( ((std::string)ipm.Port()).compare("/dev/ttyS0")==0 );
 
