@@ -329,7 +329,7 @@ void naiipm::setData(std::string cmd, int len)
 }
 
 // read response from iPM
-void naiipm::get_response(int fd, int len)
+void naiipm::get_response(int fd, int len, bool bin)
 {
     int n = 0, r = 0;
     char c;
@@ -370,18 +370,12 @@ void naiipm::get_response(int fd, int len)
             std::cout << n+1 << ": [" << c << "] " << i << " : " << x
                 << std::endl;
             buffer[n] = c;
-            if (c == '\n') { // found linefeed
+            // linefeed is a valid value mid-binary query so only test
+            // if NOT reading binary data
+            if (c == '\n' && not bin) { // found linefeed
                 break;
             }
             n++;
-        } else if (ret == '\0')  // time out after 5 tries
-        {
-            r++;
-            std::cout << "null " << c << std::endl;
-            if (r > 5)
-            {
-                break;
-            }
         } else if (ret != -1)  // read did not return timeout
         {
             std::cout << "unknown response " << c << std::endl;
@@ -402,6 +396,16 @@ void naiipm::get_response(int fd, int len)
     }
 
     buffer[n+1] = '\0'; // terminate the string
+
+    if (not bin && n+1 != len)
+    {
+       if (len != 0) // Handle edge case - a hack, clean up later
+       {
+           // n and len should be the same for ascii data
+           std::cout << "Didn't receive all expected chars: received " <<
+               n+1 << ", expected " << len << std::endl;
+       }
+    }
 }
 
 // send command to iPM and verify response
@@ -432,7 +436,7 @@ bool naiipm::send_command(int fd, std::string msg, std::string msgarg)
     std::cout << "Write completed" << std::endl;
 
     // Get response from ipm
-    get_response(fd, int(expected_response.length()));
+    get_response(fd, int(expected_response.length()), false);
     std::cout << "Received " << buffer << std::endl;
 
     if (msg == "SERNO?")  // Serial # changes frequently, so just check regex
@@ -460,7 +464,7 @@ bool naiipm::send_command(int fd, std::string msg, std::string msgarg)
     {
         int binlen = std::stoi(buffer);
         std::cout << "Now get " << binlen << " bytes" << std::endl;
-        get_response(fd, binlen);
+        get_response(fd, binlen, true);  // true indicates reading binary data
         setData(msg, binlen);
     }
 

@@ -88,7 +88,7 @@ class naiipm
 
         bool parseData(std::string cmd, int nphases);
 
-        void get_response(int fd, int len);
+        void get_response(int fd, int len, bool bin);
         void flush(int fd);
         bool verify(std::string cmd);
         bool send_command(int fd, std::string msg, std::string msgarg = "");
