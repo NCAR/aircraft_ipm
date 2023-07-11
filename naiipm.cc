@@ -361,7 +361,6 @@ void naiipm::get_response(int fd, int len)
         else
         {
             ret = read(fd, &c, 1);
-            std::cout << ret << std::endl;
         }
 
         if (ret > 0)  // successful read
@@ -564,8 +563,6 @@ bool naiipm::parseData(std::string cmd, int nphases)
     uint8_t *cp = (uint8_t *)data;
     uint16_t *sp = (uint16_t *)data;
     uint32_t *lp = (uint32_t *)data;
-
-    std::cout << "readInput received " << data  << std::endl;
 
     // parse data
     if (cmd == "BITRESULT?") {
