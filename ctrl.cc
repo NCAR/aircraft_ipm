@@ -38,7 +38,7 @@ void processArgs(int argc, char *argv[])
                 p = true;
                 ipm.setPort(optarg);
                 break;
-            case 's':  // Port to send status messages
+            case 's':  // Port to send additional status messages
                 s = true;
 		// TBD: not yet implemented
                 break;
@@ -118,7 +118,8 @@ int main(int argc, char * argv[])
     processArgs(argc, argv);
     int fd = ipm.open_port(ipm.Port());
 
-    // TBD: Get ip address and port from xml.
+    // TBD: Hardcode acserver ip address at top of code
+    // TBD: Get port from xml addr info packet.
     ipm.open_udp("192.168.84.2", 30101);
 
     bool status = true;
@@ -143,7 +144,6 @@ int main(int argc, char * argv[])
         // Cycle on requested commands
         while (true)
         {
-            // TBD:: log status
             status = ipm.loop(fd);
         }
     }

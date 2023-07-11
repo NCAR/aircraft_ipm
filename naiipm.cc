@@ -65,7 +65,7 @@ bool naiipm::init(int fd)
         std::cout << "Info for address " << i << " is " << addr(i)
             << std::endl;
         bool status = setActiveAddress(fd, i);
-        // TBD: If command failed (corruption) then what?
+        // TBD: If setActiveAddress command failed (corruption) during init?
 
         // Turn Device OFF, wait > 100ms then turn ON to reset state
         msg = "OFF";
@@ -255,7 +255,7 @@ bool naiipm::loop(int fd)
             int nphases = numphases(i);
             if (nphases != 1 && nphases != 3)
             {
-                //TBD: log error
+                //TBD: log numphases error
                 exit(1);
             }
 
@@ -315,6 +315,8 @@ bool naiipm::loop(int fd)
 	// requested rate.
 	// TBD: Will likely need to adjust this when the iPM is mounted on the
 	// aircraft.
+	// Also fix so if measurerate is 5 in XML, that gets us 5 samples
+	// per second.
         usleep((atoi(_measureRate) - 0.2) * 1000000);
 
     return true;
