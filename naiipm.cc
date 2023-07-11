@@ -366,11 +366,9 @@ void naiipm::get_response(int fd, int len)
         if (ret > 0)  // successful read
         {
             std::bitset<8> x(c);
-            std::cout << n+1 << ": [" << c << "] " << int(c) << " : " << x
+            unsigned int i = (unsigned char)c;
+            std::cout << n+1 << ": [" << c << "] " << i << " : " << x
                 << std::endl;
-            if (c == '\0') {
-                std::cout << "Found a null" << std::endl;
-            }
             buffer[n] = c;
             if (c == '\n') { // found linefeed
                 break;
