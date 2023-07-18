@@ -437,12 +437,14 @@ bool naiipm::send_command(int fd, std::string msg, std::string msgarg)
     }
     std::cout << "Write completed" << std::endl;
 
-    // Get response from ipm
-    get_response(fd, int(expected_response.length()), false);
-    std::cout << "Received " << buffer << std::endl;
-
     if (msg == "SERNO?")  // Serial # changes frequently, so just check regex
     {
+        // Since SERNO uses a regex, can't get expected response length by
+        // checking length of expected response. So just hardcode as length of
+        // 7.
+        // Get response from ipm
+        get_response(fd, 7, false);
+        std::cout << "Received " << buffer << std::endl;
         std::string str = (std::string)buffer;
         std::regex r(expected_response);
         std::smatch m;
@@ -453,11 +455,18 @@ bool naiipm::send_command(int fd, std::string msg, std::string msgarg)
             return false;  // command failed
         }
     }
-    else if(buffer != expected_response)
+    else
     {
-        std::cout << "Device command " << msg << " did not return "
-            << "expected response " << expected_response <<  std::endl;
-        return false;  // command failed
+        // Get response from ipm
+        get_response(fd, int(expected_response.length()), false);
+        std::cout << "Received " << buffer << std::endl;
+
+        if(buffer != expected_response)
+        {
+            std::cout << "Device command " << msg << " did not return "
+                << "expected response " << expected_response <<  std::endl;
+            return false;  // command failed
+        }
     }
 
     // Read binary part of response. Length of binary response was
