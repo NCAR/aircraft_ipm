@@ -346,7 +346,7 @@ void naiipm::get_response(int fd, int len, bool bin)
         FD_ZERO(&set);
         FD_SET(fd, &set);
 
-        timeout.tv_sec = 1;  // 100ms timeout
+        timeout.tv_sec = 0;  // 100ms timeout
         timeout.tv_usec = 100000;
 
         int rv = select(fd + 1, &set, NULL, NULL, &timeout);
