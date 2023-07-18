@@ -346,7 +346,7 @@ void naiipm::get_response(int fd, int len, bool bin)
         FD_ZERO(&set);
         FD_SET(fd, &set);
 
-        timeout.tv_sec = 0;  // 100ms timeout
+        timeout.tv_sec = 1;  // 100ms timeout
         timeout.tv_usec = 100000;
 
         int rv = select(fd + 1, &set, NULL, NULL, &timeout);
@@ -579,8 +579,7 @@ bool naiipm::parseData(std::string cmd, int nphases)
 
     // parse data
     if (cmd == "BITRESULT?") {
-      short temperature = (((short)data[23] & 0xFF) << 8) | data[22] & 0xFF;
-      std::cout << "iPM temperature (C) = " << temperature*.1 << std::endl;
+        parseBitresult(sp);
     }
 
     if (cmd == "RECORD?" && nphases == 1) {
@@ -611,33 +610,28 @@ bool naiipm::parseData(std::string cmd, int nphases)
     }
 
     if (cmd == "MEASURE?" && nphases == 1) {
-        // There is a typo in the programming manual. Byte should start at
-        // zero.
-        measure_1phase.FREQ = sp[0];
-        measure_1phase.VRMSA = sp[3];
-        measure_1phase.VPKA = sp[6];
-        measure_1phase.VDCA = sp[9];
-        measure_1phase.PHA = sp[12];
-        measure_1phase.THDA = cp[30];
-        measure_1phase.POWEROK = cp[33];
-        snprintf(buffer, 255, "MEASURE,%.2f,%.2f,%.2f,%.4f,%.2f,%.2f,"
-                "%d\r\n",
-                measure_1phase.FREQ * _deci, measure_1phase.VRMSA * _deci,
-                measure_1phase.VPKA * _deci, measure_1phase.VDCA * _milli,
-                measure_1phase.PHA * _deci, measure_1phase.THDA * _deci,
-                (int)measure_1phase.POWEROK
-                );
+        parseMeasure(cp, sp);
+        snprintf(buffer, 255, "MEASURE,%.2f,%.2f,%.2f,%.2f,%.2f,%.2f,%.2f,"
+                 "%.2f,%.4f,%.4f,%.4f,%.2f,%.2f,%.2f,%.2f,%.2f,%.2f,%u\r\n",
+                 measure.FREQ * _deci, measure.TEMP * _deci,
+                 measure.VRMSA * _deci, measure.VRMSB * _deci,
+                 measure.VRMSC * _deci, measure.VPKA * _deci,
+                 measure.VPKB * _deci, measure.VPKC * _deci,
+                 measure.VDCA * _milli, measure.VDCB * _milli,
+                 measure.VDCC * _milli, measure.PHA * _deci,
+                 measure.PHB * _deci, measure.PHC * _deci,
+                 measure.THDA * _deci, measure.THDB * _deci,
+                 measure.THDC * _deci, measure.POWEROK);
         send_udp(buffer);
     }
 
     // TBD: Implement parsing of 3-phase data.
 
     if (cmd == "STATUS?") {  // STATUS returns same UDP packet for both phases
-        status.OPSTATE = cp[0];
-        status.TRIPFLAGS = (((long)sp[2]) << 16) | sp[1];
-        status.CAUTIONFLAGS = (((long)sp[4]) << 16) | sp[3];
-        snprintf(buffer, 255, "STATUS,%d,%d,%d\r\n", status.OPSTATE,
-        status.TRIPFLAGS, status.CAUTIONFLAGS);
+        parseStatus(cp, sp);
+        snprintf(buffer, 255, "STATUS,%u,%u,%u,%u,%u\r\n", status.OPSTATE,
+                 status.POWEROK, status.TRIPFLAGS, status.CAUTIONFLAGS,
+                 status.BITSTAT);
         send_udp(buffer);
     }
 
@@ -685,4 +679,59 @@ void naiipm::parseRecord(uint8_t *cp, uint16_t *sp, uint32_t *lp)
     record.VPKMINC = sp[30];   // Phase C Peak Voltage Min (0.1 V)
     record.VPKMAXC = sp[31];   // Phase C Peak Voltage Max (0.1 V)
     record.CRC = lp[16];       // CRC-32
+}
+
+void naiipm::parseBitresult(uint16_t *sp)
+{
+    // There is a typo in the programming manual. Byte should start at
+    // zeroC
+    float bitStatus = sp[0];
+    float hREFV = sp[1];  // Half-Ref voltage (4.89mV)
+    float VREFV = sp[2];  // VREF voltage (4.89mV)
+    float FIVEV = sp[3];  // +5V voltage (9.78mV)
+    float FIVEVA = sp[4]; // +5VA voltage (9.78mV)
+    float RDV = sp[5];    // Relay Drive Voltage (53.76mV)
+    // bytes 13-14 and 15-16 are reserved
+    float ITVA = sp[8];   // Phase A input test voltage (4.89mV) - reserved
+    float ITVB = sp[9];   // Phase B input test voltage (4.89mV) - reserved
+    float ITVC = sp[10];  // Phase C input test voltage (4.89mV) - reserved
+    float TEMP = sp[11] * 0.1;  // Temperature (0.1C)
+    std::cout << "iPM temperature (C) = " << TEMP << std::endl;
+}
+
+void naiipm::parseMeasure(uint8_t *cp, uint16_t *sp)
+{
+    // There is a typo in the programming manual. Byte should start at
+    // zero.
+    measure.FREQ = sp[0];   // Frequency (0.1Hz)
+    // bytes 3-4 are reserved
+    measure.TEMP = sp[2];   // Temperature (0.1 C)
+    measure.VRMSA = sp[3];  // Phase A voltage rms (0.1 V)
+    measure.VRMSB = sp[4];  // Phase B voltage rms (0.1 V)
+    measure.VRMSC = sp[5];  // Phase C voltage rms (0.1 V)
+    measure.VPKA = sp[6];   // Phase A voltage peak (0.1 V)
+    measure.VPKB = sp[7];   // Phase B voltage peak (0.1 V)
+    measure.VPKC = sp[8];   // Phase C voltage peak (0.1 V)
+    measure.VDCA = sp[9];   // Phase A DC component (1 mV DC)
+    measure.VDCB = sp[10];  // Phase B DC component (1 mV DC)
+    measure.VDCC = sp[11];  // Phase C DC component (1 mV DC)
+    measure.PHA = sp[12];   // Phase A Phase Angle (0.1 deg) rel. to Phase A
+    measure.PHB = sp[13];   // Phase B Phase Angle (0.1 deg) rel. to Phase B
+    measure.PHC = sp[14];   // Phase C Phase Angle (0.1 deg) rel. to Phase C
+    measure.THDA = cp[30];  // Phase A THD (0.1%)
+    measure.THDB = cp[31];  // Phase B THD (0.1%)
+    measure.THDC = cp[32];  // Phase C THD (0.1%)
+    measure.POWEROK = cp[33];  // PowerOK (1 = power good, 0 = no good)
+}
+
+void naiipm::parseStatus(uint8_t *cp, uint16_t *sp)
+{
+    // There is a typo in the programming manual. Byte should start at
+    // zero.
+    status.OPSTATE = cp[0];    // Operating State
+    // OpState: 0 - Off; 1 = reserved; 2 - reset; 3 - Tripped; 4 - Failed
+    status.POWEROK = cp[1];    // PowerOK (1 - power good; 0 - no good)
+    status.TRIPFLAGS = (((long)sp[2]) << 16) | sp[1];
+    status.CAUTIONFLAGS = (((long)sp[4]) << 16) | sp[3];
+    status.BITSTAT = sp[10];   // bitStatus
 }
