@@ -19,6 +19,14 @@ private:
             1, 4, 6, 90, 6, 4, 6, 83, 6, 0, 0, 24, 0, 19, 27, 124, 8 };
         memcpy(ipm.buffer, record, 68);
         ipm.setData("RECORD?", 68);
+        unsigned char measure[] = {88, 2, 0, 0, 5, 2, 139, 4, 139, 4, 0, 0, 4, 6,
+            252, 5, 0, 0, 28, 0, 28, 0, 9, 0, 201, 13, 200, 6, 7, 7, 27, 27, 1,
+            1};
+        memcpy(ipm.buffer, measure, 34);
+        ipm.setData("MEASURE?", 34);
+        unsigned char status[] = {2, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0};
+        memcpy(ipm.buffer, status, 12);
+        ipm.setData("STATUS?", 12);
     }
 
     void TearDown()
@@ -30,6 +38,46 @@ private:
  ** Test parsing response strings
  ********************************************************************
 */
+TEST_F(IpmTest, ipmParseMeasure)
+{
+    //MEASURE,60.00,51.70,116.30,116.30,0.00,154.00,153.20,0.00,0.0280,0.0280,
+    //    0.0090,352.90,173.60,179.90,2.70,2.70,0.10,1
+    char *data = ipm.getData("MEASURE?");
+    uint8_t *cp = (uint8_t *)data;
+    uint16_t *sp = (uint16_t *)data;
+    ipm.parseMeasure(cp, sp);
+    EXPECT_EQ(measure.FREQ,600);
+    EXPECT_EQ(measure.TEMP,517);
+    EXPECT_EQ(measure.VRMSA,1163);
+    EXPECT_EQ(measure.VRMSB,1163);
+    EXPECT_EQ(measure.VRMSC,0);
+    EXPECT_EQ(measure.VPKA,1540);
+    EXPECT_EQ(measure.VPKB,1532);
+    EXPECT_EQ(measure.VPKC,0);
+    EXPECT_EQ(measure.VDCA,28);
+    EXPECT_EQ(measure.VDCB,28);
+    EXPECT_EQ(measure.VDCC,9);
+    EXPECT_EQ(measure.PHA,3529);
+    EXPECT_EQ(measure.PHB,1736);
+    EXPECT_EQ(measure.PHC,1799);
+    EXPECT_EQ(measure.THDA,27);
+    EXPECT_EQ(measure.THDB,27);
+    EXPECT_EQ(measure.THDC,1);
+    EXPECT_EQ(measure.POWEROK,1);
+}
+TEST_F(IpmTest, ipmParseStatus)
+{
+    // STATUS,2,1,0,0,0
+    char *data = ipm.getData("STATUS?");
+    uint8_t *cp = (uint8_t *)data;
+    uint16_t *sp = (uint16_t *)data;
+    ipm.parseStatus(cp, sp);
+    EXPECT_EQ(status.OPSTATE,2);
+    EXPECT_EQ(status.POWEROK,1);
+    EXPECT_EQ(status.TRIPFLAGS,0);
+    EXPECT_EQ(status.CAUTIONFLAGS,0);
+    EXPECT_EQ(status.BITSTAT,0);
+}
 TEST_F(IpmTest, ipmParseRecord)
 {
     //RECORD,0,2,99,74007691,0,0,20.90,117.90,20.90,117.90,0.00,0.00,58.10,

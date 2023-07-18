@@ -733,5 +733,5 @@ void naiipm::parseStatus(uint8_t *cp, uint16_t *sp)
     status.POWEROK = cp[1];    // PowerOK (1 - power good; 0 - no good)
     status.TRIPFLAGS = (((long)sp[2]) << 16) | sp[1];
     status.CAUTIONFLAGS = (((long)sp[4]) << 16) | sp[3];
-    status.BITSTAT = sp[10];   // bitStatus
+    status.BITSTAT = sp[5];   // bitStatus
 }
