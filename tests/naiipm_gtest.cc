@@ -12,6 +12,13 @@ private:
 
     void SetUp()
     {
+        // Set binary data to some actual data from the iPM
+        unsigned char record[] = {0, 2, 99, 0, 0, 0, 139, 68, 105, 4, 0, 0, 0,
+            0, 0, 0, 0, 0, 209, 0, 155, 4, 209, 0, 155, 4, 0, 0, 0, 0, 69, 2,
+            88, 2, 0, 0, 94, 0, 0, 0, 85, 0, 0, 0, 21, 0, 26, 113, 26, 113, 1,
+            1, 4, 6, 90, 6, 4, 6, 83, 6, 0, 0, 24, 0, 19, 27, 124, 8 };
+        memcpy(ipm.buffer, record, 68);
+        ipm.setData("RECORD?", 68);
     }
 
     void TearDown()
@@ -19,10 +26,53 @@ private:
     }
 };
 
-TEST_F(IpmTest, ipmSomething)
+/********************************************************************
+ ** Test parsing response strings
+ ********************************************************************
+*/
+TEST_F(IpmTest, ipmParseRecord)
 {
-    // port to send status messages to
-    // Not yet implemented
+    //RECORD,0,2,99,74007691,0,0,20.90,117.90,20.90,117.90,0.00,0.00,58.10,
+    //    60.00,0.0000,0.1130,0.0260,0.0850,0.0000,0.0210,2.60,11.30,2.60,
+    //    11.30,0.10,0.10,154.00,162.60,154.00,161.90,0.00,2.40,6931
+    char *data = ipm.getData("RECORD?");
+    uint8_t *cp = (uint8_t *)data;
+    uint16_t *sp = (uint16_t *)data;
+    uint32_t *lp = (uint32_t *)data;
+    ipm.parseRecord(cp, sp, lp);
+    EXPECT_EQ(record.EVTYPE,0);
+    EXPECT_EQ(record.OPSTATE,2);
+    EXPECT_EQ(record.POWERCNT,99);
+    EXPECT_EQ(record.TIME,74007691);
+    EXPECT_EQ(record.TFLAG,0);
+    EXPECT_EQ(record.CFLAG,0);
+    EXPECT_EQ(record.VRMSMINA,209);
+    EXPECT_EQ(record.VRMSMAXA,1179);
+    EXPECT_EQ(record.VRMSMINB,209);
+    EXPECT_EQ(record.VRMSMAXB,1179);
+    EXPECT_EQ(record.VRMSMINC,0);
+    EXPECT_EQ(record.VRMSMAXC,0);
+    EXPECT_EQ(record.FREQMIN,581);
+    EXPECT_EQ(record.FREQMAX,600);
+    EXPECT_EQ(record.VDCMINA,0);
+    EXPECT_EQ(record.VDCMAXA,94);
+    EXPECT_EQ(record.VDCMINB,0);
+    EXPECT_EQ(record.VDCMAXB,85);
+    EXPECT_EQ(record.VDCMINC,0);
+    EXPECT_EQ(record.VDCMAXC,21);
+    EXPECT_EQ(record.THDMINA,26);
+    EXPECT_EQ(record.THDMAXA,113);
+    EXPECT_EQ(record.THDMINB,26);
+    EXPECT_EQ(record.THDMAXB,113);
+    EXPECT_EQ(record.THDMINC,1);
+    EXPECT_EQ(record.THDMAXC,1);
+    EXPECT_EQ(record.VPKMINA,1540);
+    EXPECT_EQ(record.VPKMAXA,1626);
+    EXPECT_EQ(record.VPKMINB,1540);
+    EXPECT_EQ(record.VPKMAXB,1619);
+    EXPECT_EQ(record.VPKMINC,0);
+    EXPECT_EQ(record.VPKMAXC,24);
+    EXPECT_EQ(record.CRC,142351123);
 }
 
 

@@ -575,32 +575,29 @@ bool naiipm::parseData(std::string cmd, int nphases)
     }
 
     if (cmd == "RECORD?" && nphases == 1) {
-        record_1phase.FREQMAX = sp[16];
-        record_1phase.FREQMIN = sp[15];
-        record_1phase.VRMSMAXA = sp[10];
-        record_1phase.VRMSMINA = sp[9];
-        record_1phase.VPKMAXA = sp[27];
-        record_1phase.VPKMINA = sp[26];
-        record_1phase.VDCMAXA = sp[18];
-        record_1phase.VDCMINA = sp[17];
-        record_1phase.THDMAXA = cp[47];
-        record_1phase.THDMINA = cp[46];
-        // There is a typo in the programming manual. Power up count should
-        // be 4 bytes and elapsed time should start at byte 6 and be 4 bytes
-        // as coded here.
-        record_1phase.TIME = (((long)sp[4]) << 16) | sp[3];
-        std::cout << record_1phase.TIME/60000 << " minutes since power-up"
+        parseRecord(cp, sp, lp);
+        std::cout << record.TIME/60000 << " minutes since power-up"
             << std::endl;
-        record_1phase.EVTYPE = cp[0];
-        snprintf(buffer, 255, "RECORD,%.2f,%.2f,%.2f,%.2f,%.2f,%.2f,"
-                "%.4f,%.4f,%.2f,%.2f,%.2f,%.2f\r\n",
-                record_1phase.FREQMAX * _deci, record_1phase.FREQMIN * _deci,
-                record_1phase.VRMSMAXA * _deci, record_1phase.VRMSMINA * _deci,
-                record_1phase.VPKMAXA * _deci, record_1phase.VPKMINA * _deci,
-                record_1phase.VDCMAXA * _milli, record_1phase.VDCMINA * _milli,
-                record_1phase.THDMAXA * _deci, record_1phase.THDMINA * _deci,
-                (float)record_1phase.TIME, (float)record_1phase.EVTYPE
-                );
+        snprintf(buffer, 255, "RECORD,%u,%u,%u,%u,%u,%u,%.2f,%.2f,%.2f,%.2f,"
+                 "%.2f,%.2f,%.2f,%.2f,%.4f,%.4f,%.4f,%.4f,%.4f,%.4f,%.2f,"
+                 "%.2f,%.2f,%.2f,%.2f,%.2f,%.2f,%.2f,%.2f,%.2f,%.2f,%.2f,"
+                 "%u\r\n",
+                 record.EVTYPE, record.OPSTATE, record.POWERCNT,
+                 record.TIME, record.TFLAG, record.CFLAG,
+                 record.VRMSMINA * _deci, record.VRMSMAXA * _deci,
+                 record.VRMSMINB * _deci, record.VRMSMAXB * _deci,
+                 record.VRMSMINC * _deci, record.VRMSMAXC * _deci,
+                 record.FREQMIN * _deci, record.FREQMAX * _deci,
+                 record.VDCMINA * _milli, record.THDMAXA * _milli,
+                 record.THDMINB * _milli, record.VDCMAXB * _milli,
+                 record.VDCMINC * _milli, record.VDCMAXC * _milli,
+                 record.THDMINA * _deci, record.THDMAXA * _deci,
+                 record.THDMINB * _deci, record.THDMAXB * _deci,
+                 record.THDMINC * _deci, record.THDMAXC * _deci,
+                 record.VPKMINA * _deci, record.VPKMAXA * _deci,
+                 record.VPKMINB * _deci, record.VPKMAXB * _deci,
+                 record.VPKMINC * _deci, record.VPKMAXC * _deci,
+                 record.CRC);
         send_udp(buffer);
     }
 
@@ -636,4 +633,47 @@ bool naiipm::parseData(std::string cmd, int nphases)
     }
 
     return true;
+}
+
+void naiipm::parseRecord(uint8_t *cp, uint16_t *sp, uint32_t *lp)
+{
+    record.EVTYPE = cp[0];    // Event Type
+    // Event Type: 0 - Max Interval; 1 - Power Up; 2 - Power Down; 3 - Off;
+    //             4 - Reset; 5 - Trip; 6 - Fail; 7 - Output On; 8 - Output Off
+
+    record.OPSTATE = cp[1];    // Operating State
+    // There is a typo in the programming manual. Power up count should
+    // be 4 bytes and elapsed time should start at byte 6 and be 4 bytes
+    // as coded here.
+    record.POWERCNT = (((long)sp[2]) << 16) | sp[1];  // Power Up Count
+    record.TIME = (((long)sp[4]) << 16) | sp[3]; // Power Up Time (1 ms)
+    record.TFLAG = (((long)sp[6]) << 16) | sp[5];  // Trip Flag
+    record.CFLAG = (((long)sp[8]) << 16) | sp[7];  // Caution Flag
+    record.VRMSMINA = sp[9];   // Phase A Voltage Min (0.1 V rms)
+    record.VRMSMAXA = sp[10];  // Phase A Voltage Max (0.1 V rms)
+    record.VRMSMINB = sp[11];  // Phase B Voltage Min (0.1 V rms)
+    record.VRMSMAXB = sp[12];  // Phase B Voltage Max (0.1 V rms)
+    record.VRMSMINC = sp[13];  // Phase C Voltage Min (0.1 V rms)
+    record.VRMSMAXC = sp[14];  // Phase C Voltage Max (0.1 V rms)
+    record.FREQMIN = sp[15];   // Frequency Min (0.1 Hz)
+    record.FREQMAX = sp[16];   // Frequency Max (0.1 Hz)
+    record.VDCMINA = sp[17];   // Phase A DC Content Min (1 mV)
+    record.VDCMAXA = sp[18];   // Phase A DC Content Max (1 mV)
+    record.VDCMINB = sp[19];   // Phase B DC Content Min (1 mV)
+    record.VDCMAXB = sp[20];   // Phase B DC Content Max (1 mV)
+    record.VDCMINC = sp[21];   // Phase C DC Content Min (1 mV)
+    record.VDCMAXC = sp[22];   // Phase C DC Content Max (1 mV)
+    record.THDMINA = cp[46];   // Phase A Distortion Min (0.1 %)
+    record.THDMAXA = cp[47];   // Phase A Distortion Max (0.1 %)
+    record.THDMINB = cp[48];   // Phase B Distortion Min (0.1 %)
+    record.THDMAXB = cp[49];   // Phase B Distortion Max (0.1 %)
+    record.THDMINC = cp[50];   // Phase C Distortion Min (0.1 %)
+    record.THDMAXC = cp[51];   // Phase C Distortion Max (0.1 %)
+    record.VPKMINA = sp[26];   // Phase A Peak Voltage Min (0.1 V)
+    record.VPKMAXA = sp[27];   // Phase A Peak Voltage Max (0.1 V)
+    record.VPKMINB = sp[28];   // Phase B Peak Voltage Min (0.1 V)
+    record.VPKMAXB = sp[29];   // Phase B Peak Voltage Max (0.1 V)
+    record.VPKMINC = sp[30];   // Phase C Peak Voltage Min (0.1 V)
+    record.VPKMAXC = sp[31];   // Phase C Peak Voltage Max (0.1 V)
+    record.CRC = lp[16];       // CRC-32
 }
