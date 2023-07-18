@@ -40,7 +40,7 @@ void processArgs(int argc, char *argv[])
                 break;
             case 's':  // Port to send additional status messages
                 s = true;
-		// TBD: not yet implemented
+                // TBD: not yet implemented
                 break;
             case 'm':  // STATUS & MEASURE collection rate (hz)
                 m = true;

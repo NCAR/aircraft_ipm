@@ -249,75 +249,75 @@ bool naiipm::loop(int fd)
     _recordCount++;
 
     for (int i=0; i < atoi(numAddr()); i++)
+    {
+        // ‘numphases’ (integer) indicates whether 1 phase, or 3-phases of
+        // data are to be capture. Should only be =1 or =3
+        int nphases = numphases(i);
+        if (nphases != 1 && nphases != 3)
         {
-            // ‘numphases’ (integer) indicates whether 1 phase, or 3-phases of
-            // data are to be capture. Should only be =1 or =3
-            int nphases = numphases(i);
-            if (nphases != 1 && nphases != 3)
-            {
-                //TBD: log numphases error
-                exit(1);
-            }
-
-            // ‘procqueries’ is an integer representation of 3-bit Boolean
-            // field indicating whether query responses [RECORD,MEASURE,STATUS]
-            // should be processed and variables included in a processed data
-            // file.
-            //     d’3 (b’011) indicates that MEASURE+STATUS are processed.
-            //     d’5 (b’101) indicates that RECORD+STATUS are processed.
-            int procq = procqueries(i);
-            std::bitset<4> x('\0' + procq);
-            std::cout << ": [" << procq << "] " << '\0' + procq << " : " << x
-                << std::endl;
-
-            if (setActiveAddress(fd, i))
-            {
-                std::bitset<4> r = x;
-                if ((r &= 0b0100) == 4)  // RECORD command requested
-                {
-	            if (_recordCount >= recordFreq)
-		    {
-                        msg = "RECORD?";
-                        if(not send_command(fd, msg)) { return false; }
-                        bool status = parseData(msg, nphases);
-                        std::cout << std::boolalpha << "Status is " << status
-                            << std::endl;
-		        _recordCount = 0;
-		    }
-                }
-                std::bitset<4> m = x;
-                if ((m &= 0b0010) == 2)  // MEASURE command requested
-                {
-                    msg = "MEASURE?";
-                    if(not send_command(fd, msg)) { return false; }
-                    bool status = parseData(msg, nphases);
-                    std::cout << std::boolalpha << "Status is " << status
-                        << std::endl;
-                }
-                std::bitset<4> s = x;
-                if ((s &= 0b0001) == 1)  // STATUS command requested
-                {
-                    msg = "STATUS?";
-                    if(not send_command(fd, msg)) { return false; }
-                    bool status = parseData(msg, nphases);
-                    std::cout << std::boolalpha << "Status is " << status
-                        << std::endl;
-                }
-            }
+            //TBD: log numphases error
+            exit(1);
         }
 
-        // rate for STATUS and MEASURE is quicker than RECORD, so use that
-	// as the base. Rather than setting a timer, to get responses at the
-	// exact interval requested, since this is housekeeping data and timing
-	// is not critical, set sleep so we get at least one response per
-	// requested time period. From test runs on Gigajoules, request for all
-	// three commands returns in ~0.2 seconds, so subtract that from
-	// requested rate.
-	// TBD: Will likely need to adjust this when the iPM is mounted on the
-	// aircraft.
-	// Also fix so if measurerate is 5 in XML, that gets us 5 samples
-	// per second.
-        usleep((atoi(_measureRate) - 0.2) * 1000000);
+        // ‘procqueries’ is an integer representation of 3-bit Boolean
+        // field indicating whether query responses [RECORD,MEASURE,STATUS]
+        // should be processed and variables included in a processed data
+        // file.
+        //     d’3 (b’011) indicates that MEASURE+STATUS are processed.
+        //     d’5 (b’101) indicates that RECORD+STATUS are processed.
+        int procq = procqueries(i);
+        std::bitset<4> x('\0' + procq);
+        std::cout << ": [" << procq << "] " << '\0' + procq << " : " << x
+            << std::endl;
+
+        if (setActiveAddress(fd, i))
+        {
+            std::bitset<4> r = x;
+            if ((r &= 0b0100) == 4)  // RECORD command requested
+            {
+                if (_recordCount >= recordFreq)
+                {
+                    msg = "RECORD?";
+                    if(not send_command(fd, msg)) { return false; }
+                    bool status = parseData(msg, nphases);
+                    std::cout << std::boolalpha << "Status is " << status
+                        << std::endl;
+                    _recordCount = 0;
+                }
+            }
+            std::bitset<4> m = x;
+            if ((m &= 0b0010) == 2)  // MEASURE command requested
+            {
+                msg = "MEASURE?";
+                if(not send_command(fd, msg)) { return false; }
+                bool status = parseData(msg, nphases);
+                std::cout << std::boolalpha << "Status is " << status
+                    << std::endl;
+            }
+            std::bitset<4> s = x;
+            if ((s &= 0b0001) == 1)  // STATUS command requested
+            {
+                msg = "STATUS?";
+                if(not send_command(fd, msg)) { return false; }
+                bool status = parseData(msg, nphases);
+                std::cout << std::boolalpha << "Status is " << status
+                    << std::endl;
+            }
+        }
+    }
+
+    // rate for STATUS and MEASURE is quicker than RECORD, so use that
+    // as the base. Rather than setting a timer, to get responses at the
+    // exact interval requested, since this is housekeeping data and timing
+    // is not critical, set sleep so we get at least one response per
+    // requested time period. From test runs on Gigajoules, request for all
+    // three commands returns in ~0.2 seconds, so subtract that from
+    // requested rate.
+    // TBD: Will likely need to adjust this when the iPM is mounted on the
+    // aircraft.
+    // Also fix so if measurerate is 5 in XML, that gets us 5 samples
+    // per second.
+    usleep((atoi(_measureRate) - 0.2) * 1000000);
 
     return true;
 
@@ -341,7 +341,7 @@ void naiipm::get_response(int fd, int len, bool bin)
     std::cout << "len " << len << std::endl;
     while (true)
     {
-	// If iPM never returns expected number of bytes, timeout
+        // If iPM never returns expected number of bytes, timeout
         struct timeval timeout;
         FD_ZERO(&set);
         FD_SET(fd, &set);
@@ -381,10 +381,10 @@ void naiipm::get_response(int fd, int len, bool bin)
         } else if (ret != -1)  // read did not return timeout
         {
             std::cout << "unknown response " << c << std::endl;
-	} else if (ret == -1)  // Resource temporarily unavailable
+        } else if (ret == -1)  // Resource temporarily unavailable
         {
-            std::cout << "Read from iPM returned error " <<strerror(errno)
-		<< std::endl;
+            std::cout << "Read from iPM returned error " << strerror(errno)
+                << std::endl;
         }
 
 
@@ -603,7 +603,7 @@ bool naiipm::parseData(std::string cmd, int nphases)
 
     if (cmd == "MEASURE?" && nphases == 1) {
         // There is a typo in the programming manual. Byte should start at
-	// zero.
+        // zero.
         measure_1phase.FREQ = sp[0];
         measure_1phase.VRMSA = sp[3];
         measure_1phase.VPKA = sp[6];
@@ -615,7 +615,7 @@ bool naiipm::parseData(std::string cmd, int nphases)
                 "%d\r\n",
                 measure_1phase.FREQ * _deci, measure_1phase.VRMSA * _deci,
                 measure_1phase.VPKA * _deci, measure_1phase.VDCA * _milli,
-		measure_1phase.PHA * _deci, measure_1phase.THDA * _deci,
+                measure_1phase.PHA * _deci, measure_1phase.THDA * _deci,
                 (int)measure_1phase.POWEROK
                 );
         send_udp(buffer);
@@ -624,11 +624,11 @@ bool naiipm::parseData(std::string cmd, int nphases)
     // TBD: Implement parsing of 3-phase data.
 
     if (cmd == "STATUS?") {  // STATUS returns same UDP packet for both phases
-	status.OPSTATE = cp[0];
-	status.TRIPFLAGS = (((long)sp[2]) << 16) | sp[1];
-	status.CAUTIONFLAGS = (((long)sp[4]) << 16) | sp[3];
+        status.OPSTATE = cp[0];
+        status.TRIPFLAGS = (((long)sp[2]) << 16) | sp[1];
+        status.CAUTIONFLAGS = (((long)sp[4]) << 16) | sp[3];
         snprintf(buffer, 255, "STATUS,%d,%d,%d\r\n", status.OPSTATE,
-		 status.TRIPFLAGS, status.CAUTIONFLAGS);
+        status.TRIPFLAGS, status.CAUTIONFLAGS);
         send_udp(buffer);
     }
 
