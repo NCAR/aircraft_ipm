@@ -1,4 +1,5 @@
 # -*- python -*-
+from SCons.Script import COMMAND_LINE_TARGETS
 
 def ipmbase(env):
     env.Append(CXXFLAGS=['-std=c++14'])
@@ -17,4 +18,5 @@ ipm_ctrl=env.Program(target = 'ipm_ctrl', source = sources)
 env.Default(ipm_ctrl)
 
 env.Alias('install', env.Install('/opt/nidas/bin', 'ipm_ctrl'))
-env.Alias('test', SConscript("tests/SConscript"))
+
+env.SConscript("tests/SConscript")
