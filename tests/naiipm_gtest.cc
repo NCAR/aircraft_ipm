@@ -13,17 +13,24 @@ private:
     void SetUp()
     {
         // Set binary data to some actual data from the iPM
+        unsigned char bitresult[] = {0,0,254,1,255,3,25,2,24,2,88,1,0,0,0,0,
+           39,2,249,1,249,1,253,1};
+        memcpy(ipm.buffer,bitresult,25);
+        ipm.setData("BITRESULT?", 25);
+
         unsigned char record[] = {0, 2, 99, 0, 0, 0, 139, 68, 105, 4, 0, 0, 0,
             0, 0, 0, 0, 0, 209, 0, 155, 4, 209, 0, 155, 4, 0, 0, 0, 0, 69, 2,
             88, 2, 0, 0, 94, 0, 0, 0, 85, 0, 0, 0, 21, 0, 26, 113, 26, 113, 1,
             1, 4, 6, 90, 6, 4, 6, 83, 6, 0, 0, 24, 0, 19, 27, 124, 8 };
         memcpy(ipm.buffer, record, 68);
         ipm.setData("RECORD?", 68);
+
         unsigned char measure[] = {88, 2, 0, 0, 5, 2, 139, 4, 139, 4, 0, 0, 4, 6,
             252, 5, 0, 0, 28, 0, 28, 0, 9, 0, 201, 13, 200, 6, 7, 7, 27, 27, 1,
             1};
         memcpy(ipm.buffer, measure, 34);
         ipm.setData("MEASURE?", 34);
+
         unsigned char status[] = {2, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0};
         memcpy(ipm.buffer, status, 12);
         ipm.setData("STATUS?", 12);
@@ -38,6 +45,13 @@ private:
  ** Test parsing response strings
  ********************************************************************
 */
+TEST_F(IpmTest, ipmParseBitresult)
+{
+    char *data = ipm.getData("BITRESULT?");
+    uint16_t *sp = (uint16_t *)data;
+    ipm.parseBitresult(sp);
+}
+
 TEST_F(IpmTest, ipmParseMeasure)
 {
     //MEASURE,60.00,51.70,116.30,116.30,0.00,154.00,153.20,0.00,0.0280,0.0280,
@@ -78,6 +92,7 @@ TEST_F(IpmTest, ipmParseStatus)
     EXPECT_EQ(status.CAUTIONFLAGS,0);
     EXPECT_EQ(status.BITSTAT,0);
 }
+
 TEST_F(IpmTest, ipmParseRecord)
 {
     //RECORD,0,2,99,74007691,0,0,20.90,117.90,20.90,117.90,0.00,0.00,58.10,
@@ -123,6 +138,17 @@ TEST_F(IpmTest, ipmParseRecord)
     EXPECT_EQ(record.CRC,142351123);
 }
 
+TEST_F(IpmTest, ipmParseAddrInfo)
+{
+    // Parse the addInfo block
+    char addrinfo[] = "0,1,5,30101";
+    ipm.setAddrInfo(0, addrinfo);
+    ipm.parse_addrInfo(0);
+    EXPECT_EQ(ipm.addr(0), 0);
+    EXPECT_EQ(ipm.numphases(0), 1);
+    EXPECT_EQ(ipm.procqueries(0), 5);
+    EXPECT_EQ(ipm.addrport(0), 30101);
+}
 
 /********************************************************************
  ** Test storing and retrieving command line args.  ipm_ctrl accepts
