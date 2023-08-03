@@ -122,10 +122,8 @@ class naiipm
         bool parseData(std::string cmd, int nphases);
         void parseBitresult(uint16_t *sp);
         void parseMeasure(uint8_t *cp, uint16_t *sp);
-        void scaleMeasure();
         void parseStatus(uint8_t *cp, uint16_t *sp);
         void parseRecord(uint8_t *cp, uint16_t *sp, uint32_t *lp);
-        void scaleRecord();
 
         void get_response(int fd, int len, bool bin);
         void flush(int fd);
