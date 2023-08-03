@@ -62,7 +62,8 @@ bool naiipm::init(int fd)
     {
         std::string msg;
         parse_addrInfo(i);
-        std::cout << "Info for address " << i << " is " << addr(i)
+        std::cout << "Info for address " << i << " is " << addr(i) << ","
+            << numphases(i) << "," << procqueries(i) << "," << addrport(i)
             << std::endl;
         bool status = setActiveAddress(fd, i);
         // TBD: If setActiveAddress command failed (corruption) during init?
@@ -186,7 +187,7 @@ void naiipm::open_udp(const char *ip, int port)
 // Send a UDP message to nidas
 void naiipm::send_udp(const char *buf)
 {
-    std::cout << "sending UDP string " << buf << std::endl;
+    std::cout << "sending UDP string " << buf;
     if (sendto(_sock, (const char *)buf, strlen(buf), 0,
             (const struct sockaddr *) &_servaddr, sizeof(_servaddr)) == -1)
     {
@@ -289,17 +290,8 @@ bool naiipm::loop(int fd)
 
         if (setActiveAddress(fd, i))
         {
-            std::bitset<4> r = x;
-            if ((r &= 0b0100) == 4)  // RECORD command requested
-            {
-                if (_recordCount >= recordFreq)
-                {
-                    msg = "RECORD?";
-                    if(not send_command(fd, msg)) { return false; }
-                    bool status = parseData(msg, nphases);
-                    _recordCount = 0;
-                }
-            }
+            // Per software requirements, MEASURE? Is queried first, followed
+            // by STATUS?, followed by RECORD?
             std::bitset<4> m = x;
             if ((m &= 0b0010) == 2)  // MEASURE command requested
             {
@@ -313,6 +305,17 @@ bool naiipm::loop(int fd)
                 msg = "STATUS?";
                 if(not send_command(fd, msg)) { return false; }
                 bool status = parseData(msg, nphases);
+            }
+            std::bitset<4> r = x;
+            if ((r &= 0b0100) == 4)  // RECORD command requested
+            {
+                if (_recordCount >= recordFreq)
+                {
+                    msg = "RECORD?";
+                    if(not send_command(fd, msg)) { return false; }
+                    bool status = parseData(msg, nphases);
+                    _recordCount = 0;
+                }
             }
         }
     }
@@ -381,7 +384,10 @@ void naiipm::get_response(int fd, int len, bool bin)
         }
         else if (rv == 0)
         {
-            std::cout << "timeout" << std::endl; /* a timeout occured */
+            if (Debug())
+            {
+                std::cout << "timeout" << std::endl; /* a timeout occured */
+            }
             break;
         }
         else
