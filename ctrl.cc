@@ -29,7 +29,7 @@ void processArgs(int argc, char *argv[])
 
     // Options between colons require an argument
     // Options after second colon do not.
-    while((opt = getopt(argc, argv, ":p:s:m:r:b:n:0:1:2:3:4:5:6:7:i")) != -1)
+    while((opt = getopt(argc, argv, ":p:s:m:r:b:n:0:1:2:3:4:5:6:7:ide")) != -1)
     {
         nopt++;
         switch(opt)
@@ -72,6 +72,12 @@ void processArgs(int argc, char *argv[])
             case 'i':  // Run in interactive (menu) mode
                 ipm.setInteractive();
                 break;
+            case 'd': // Run in debug mode
+                ipm.setDebug();
+                break;
+            case 'e': // Run in emulator mode
+                ipm.setEmulate();
+                break;
             case ':':
                 std::cerr << "option -" << char(optopt) <<
                     " needs a value" << std::endl;
@@ -109,6 +115,9 @@ void processArgs(int argc, char *argv[])
             "\t\t\t\tnumber 0 to n-1 followed by info block" << std::endl;
         std::cout << "\t-i\t\t\trun in interactive mode (optional)"
             << std::endl;
+        std::cout << "\t-d\t\t\trun in debug mode (optional)\n" << std::endl;
+        std::cout << "\t-e\t\t\trun with emulator; longer timeout (optional)\n"
+            << std::endl;
         exit(1);
     }
 }
@@ -127,14 +136,16 @@ int main(int argc, char * argv[])
     {
         while (status != 0)
         {
-          ipm.printMenu();
-          status = ipm.readInput(fd);
-          std::cout << std::boolalpha << "Status is " << status << std::endl;
+            ipm.printMenu();
+            status = ipm.readInput(fd);
         }
     } else {
         if (ipm.init(fd))
         {
-            std::cout << "Device successfully initialized" << std::endl;
+            if (ipm.Debug())
+            {
+                std::cout << "Device successfully initialized" << std::endl;
+            }
         } else {
             std::cout << "Device failed to initialize" << std::endl;
             ipm.close_port(fd);

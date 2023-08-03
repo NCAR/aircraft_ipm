@@ -25,9 +25,9 @@ private:
         memcpy(ipm.buffer, record, 68);
         ipm.setData("RECORD?", 68);
 
-        unsigned char measure[] = {88, 2, 0, 0, 5, 2, 139, 4, 139, 4, 0, 0, 4, 6,
-            252, 5, 0, 0, 28, 0, 28, 0, 9, 0, 201, 13, 200, 6, 7, 7, 27, 27, 1,
-            1};
+        unsigned char measure[] = {88, 2, 0, 0, 5, 2, 139, 4, 139, 4, 0, 0, 4,
+            6, 252, 5, 0, 0, 28, 0, 28, 0, 9, 0, 201, 13, 200, 6, 7, 7, 27, 27,
+            1, 1};
         memcpy(ipm.buffer, measure, 34);
         ipm.setData("MEASURE?", 34);
 
@@ -220,4 +220,18 @@ TEST_F(IpmTest, ipmSetGetInteractive)
     // Interactive mode
     ipm.setInteractive();
     EXPECT_EQ(ipm.Interactive(), true);
+}
+
+TEST_F(IpmTest, ipmSetGetDebug)
+{
+    // Debug mode
+    ipm.setDebug();
+    EXPECT_EQ(ipm.Debug(), true);
+}
+
+TEST_F(IpmTest, ipmSetGetEmulate)
+{
+    // Emulate mode
+    ipm.setEmulate();
+    EXPECT_EQ(ipm.Emulate(), true);
 }

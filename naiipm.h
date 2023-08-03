@@ -111,6 +111,12 @@ class naiipm
         void setInteractive() { _interactive = true; }
         bool Interactive()    { return _interactive; };
 
+        void setDebug() { _debug = true; }
+        bool Debug()    { return _debug; };
+
+        void setEmulate() { _emulate = true; }
+        bool Emulate()    { return _emulate; };
+
         void printMenu();
         bool readInput(int fd);
         bool init(int fd);
@@ -168,6 +174,8 @@ class naiipm
         const char* _port;
         const char* _numaddr;
         bool _interactive;
+        bool _debug;
+        bool _emulate;
         struct sockaddr_in _servaddr;
         int _sock;
 

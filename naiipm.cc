@@ -96,7 +96,6 @@ bool naiipm::init(int fd)
         msg = "BITRESULT?";
         if(not send_command(fd, msg)) { return false; }
         status = parseData(msg, 0);  // parse binary part of BITRESULT?
-        std::cout << std::boolalpha << "Status is " << status << std::endl;
 
 
     }
@@ -207,22 +206,37 @@ void naiipm::close_udp()
 void naiipm::parse_addrInfo(int i)
 {
     char *addrinfo = addrInfo(i);
-    std::cout << "Parsing info block " << addrinfo << std::endl;
+    if (Debug())
+    {
+        std::cout << "Parsing info block " << addrinfo << std::endl;
+    }
     char *ptr = strtok(addrinfo, ",");
     setAddr(i, ptr);
-    std::cout << "addr: " << addr(i) << std::endl;
+    if (Debug())
+    {
+        std::cout << "addr: " << addr(i) << std::endl;
+    }
 
     ptr = strtok(NULL, ",");
     setNumphases(i, ptr);
-    std::cout << "numphases: " << numphases(i) << std::endl;
+    if (Debug())
+    {
+        std::cout << "numphases: " << numphases(i) << std::endl;
+    }
 
     ptr = strtok(NULL, ",");
     setProcqueries(i, ptr);
-    std::cout << "procqueries: " << procqueries(i) << std::endl;
+    if (Debug())
+    {
+        std::cout << "procqueries: " << procqueries(i) << std::endl;
+    }
 
     ptr = strtok(NULL, ",");
     setAddrPort(i, ptr);
-    std::cout << "addrport: " << addrport(i) << std::endl;
+    if (Debug())
+    {
+        std::cout << "addrport: " << addrport(i) << std::endl;
+    }
 }
 
 // Set active address
@@ -267,8 +281,11 @@ bool naiipm::loop(int fd)
         //     d’5 (b’101) indicates that RECORD+STATUS are processed.
         int procq = procqueries(i);
         std::bitset<4> x('\0' + procq);
-        std::cout << ": [" << procq << "] " << '\0' + procq << " : " << x
-            << std::endl;
+        if (Debug())
+        {
+            std::cout << ": [" << procq << "] " << '\0' + procq << " : " << x
+                << std::endl;
+        }
 
         if (setActiveAddress(fd, i))
         {
@@ -280,8 +297,6 @@ bool naiipm::loop(int fd)
                     msg = "RECORD?";
                     if(not send_command(fd, msg)) { return false; }
                     bool status = parseData(msg, nphases);
-                    std::cout << std::boolalpha << "Status is " << status
-                        << std::endl;
                     _recordCount = 0;
                 }
             }
@@ -291,8 +306,6 @@ bool naiipm::loop(int fd)
                 msg = "MEASURE?";
                 if(not send_command(fd, msg)) { return false; }
                 bool status = parseData(msg, nphases);
-                std::cout << std::boolalpha << "Status is " << status
-                    << std::endl;
             }
             std::bitset<4> s = x;
             if ((s &= 0b0001) == 1)  // STATUS command requested
@@ -300,8 +313,6 @@ bool naiipm::loop(int fd)
                 msg = "STATUS?";
                 if(not send_command(fd, msg)) { return false; }
                 bool status = parseData(msg, nphases);
-                std::cout << std::boolalpha << "Status is " << status
-                    << std::endl;
             }
         }
     }
@@ -338,7 +349,10 @@ void naiipm::get_response(int fd, int len, bool bin)
     int ret;
     fd_set set;
     buffer[0] = '\0';
-    std::cout << "len " << len << std::endl;
+    if (Debug())
+    {
+        std::cout << "Expected response length " << len << std::endl;
+    }
     while (true)
     {
         // If iPM never returns expected number of bytes, timeout
@@ -346,8 +360,18 @@ void naiipm::get_response(int fd, int len, bool bin)
         FD_ZERO(&set);
         FD_SET(fd, &set);
 
-        timeout.tv_sec = 0;  // 100ms timeout
-        timeout.tv_usec = 100000;
+        // During operation, the iPM timeout should be 100ms. When developing
+        // using the Python emulator, this is too short, so add a second.
+        int tout;
+        if (Emulate())
+        {
+            tout = 1;  // Add a second to timeout when developing
+        } else
+        {
+            tout = 0;  // Deployment mode - leave timeout at 100ms
+        }
+        timeout.tv_sec = tout;
+        timeout.tv_usec = 100000;  // 100ms timeout
 
         int rv = select(fd + 1, &set, NULL, NULL, &timeout);
         if (rv == -1)
@@ -369,8 +393,11 @@ void naiipm::get_response(int fd, int len, bool bin)
         {
             std::bitset<8> x(c);
             unsigned int i = (unsigned char)c;
-            std::cout << n+1 << ": [" << c << "] " << i << " : " << x
-                << std::endl;
+            if (Debug())
+            {
+                std::cout << n+1 << ": [" << c << "] " << i << " : " << x
+                    << std::endl;
+            }
             buffer[n] = c;
             // linefeed is a valid value mid-binary query so only test
             // if NOT reading binary data
@@ -416,11 +443,17 @@ bool naiipm::send_command(int fd, std::string msg, std::string msgarg)
     // Confirm command is in list of acceptable command
     if (not verify(msg)) {return false;}
 
-    std::cout << "Got message " << msg << std::endl;
+    if (Debug())
+    {
+        std::cout << "Got message " << msg << std::endl;
+    }
     // Find expected response for this message
     auto response = _ipm_commands.find(msg);
     std::string expected_response = response->second;
-    std::cout << "Expect response " << expected_response << std::endl;
+    if (Debug())
+    {
+        std::cout << "Expect response " << expected_response << std::endl;
+    }
 
     // Send message to ipm
     if (msgarg != "")
@@ -428,14 +461,20 @@ bool naiipm::send_command(int fd, std::string msg, std::string msgarg)
         msg.append(' ' + msgarg);
     }
     std::string sendmsg = msg + "\n";  // Add linefeed to end of command
-    std::cout << "Sending message " << sendmsg << std::endl;
-    std::cout << "of length " << sendmsg.length() << std::endl;
+    if (Debug())
+    {
+        std::cout << "Sending message " << sendmsg << std::endl;
+        std::cout << "of length " << sendmsg.length() << std::endl;
+    }
     write(fd, sendmsg.c_str(), sendmsg.length());
     if (tcdrain(fd) == -1)  // wait for write to complete
     {
         std::cout << errno << std::endl;
     }
-    std::cout << "Write completed" << std::endl;
+    if (Debug())
+    {
+        std::cout << "Write completed" << std::endl;
+    }
 
     if (msg == "SERNO?")  // Serial # changes frequently, so just check regex
     {
@@ -444,7 +483,10 @@ bool naiipm::send_command(int fd, std::string msg, std::string msgarg)
         // 7.
         // Get response from ipm
         get_response(fd, 7, false);
-        std::cout << "Received " << buffer << std::endl;
+        if (Debug())
+        {
+            std::cout << "Received " << buffer << std::endl;
+        }
         std::string str = (std::string)buffer;
         std::regex r(expected_response);
         std::smatch m;
@@ -459,7 +501,10 @@ bool naiipm::send_command(int fd, std::string msg, std::string msgarg)
     {
         // Get response from ipm
         get_response(fd, int(expected_response.length()), false);
-        std::cout << "Received " << buffer << std::endl;
+        if (Debug())
+        {
+            std::cout << "Received " << buffer << std::endl;
+        }
 
         if(buffer != expected_response)
         {
@@ -474,7 +519,10 @@ bool naiipm::send_command(int fd, std::string msg, std::string msgarg)
     if (_ipm_data.find(msg) != _ipm_data.end()) // cmd returns data
     {
         int binlen = std::stoi(buffer);
-        std::cout << "Now get " << binlen << " bytes" << std::endl;
+        if (Debug())
+        {
+            std::cout << "Now get " << binlen << " bytes" << std::endl;
+        }
         get_response(fd, binlen, true);  // true indicates reading binary data
         setData(msg, binlen);
     }
@@ -525,12 +573,18 @@ bool naiipm::readInput(int fd)
 
     // Request user input
     std::cin >> (cmd);
-    std::cout << "User requested " << cmd << std::endl;
+    if (Debug())
+    {
+        std::cout << "User requested " << cmd << std::endl;
+    }
 
     // Catch exit request
     if (cmd.compare("q") == 0)
     {
-        std::cout << "Exiting..." << std::endl;
+        if (Debug())
+        {
+            std::cout << "Exiting..." << std::endl;
+        }
         return false;
     }
 
@@ -569,7 +623,10 @@ bool naiipm::parseData(std::string cmd, int nphases)
 {
     // nphases can be 1 or 3. Any other value is ignored.
     // retrieve binary data
-    std::cout << '{' << cmd << '}' << std::endl;
+    if (Debug())
+    {
+        std::cout << '{' << cmd << '}' << std::endl;
+    }
     char* data = getData(cmd); // data content
 
     // Create some pointers to access data of various lengths
@@ -584,8 +641,11 @@ bool naiipm::parseData(std::string cmd, int nphases)
 
     if (cmd == "RECORD?" && nphases == 1) {
         parseRecord(cp, sp, lp);
-        std::cout << record.TIME/60000 << " minutes since power-up"
-            << std::endl;
+        if (Debug())
+        {
+            std::cout << record.TIME/60000 << " minutes since power-up"
+                << std::endl;
+        }
         snprintf(buffer, 255, "RECORD,%u,%u,%u,%u,%u,%u,%.2f,%.2f,%.2f,%.2f,"
                  "%.2f,%.2f,%.2f,%.2f,%.4f,%.4f,%.4f,%.4f,%.4f,%.4f,%.2f,"
                  "%.2f,%.2f,%.2f,%.2f,%.2f,%.2f,%.2f,%.2f,%.2f,%.2f,%.2f,"
@@ -696,7 +756,10 @@ void naiipm::parseBitresult(uint16_t *sp)
     float ITVB = sp[9];   // Phase B input test voltage (4.89mV) - reserved
     float ITVC = sp[10];  // Phase C input test voltage (4.89mV) - reserved
     float TEMP = sp[11] * 0.1;  // Temperature (0.1C)
-    std::cout << "iPM temperature (C) = " << TEMP << std::endl;
+    if (Debug())
+    {
+        std::cout << "iPM temperature (C) = " << TEMP << std::endl;
+    }
 }
 
 void naiipm::parseMeasure(uint8_t *cp, uint16_t *sp)
