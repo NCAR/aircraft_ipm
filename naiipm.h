@@ -122,6 +122,9 @@ class naiipm
         bool init(int fd);
         bool loop(int fd);
 
+        void setRecordFreq();
+        void sleep();
+
     private:
         char buffer[1000];
 
@@ -141,6 +144,8 @@ class naiipm
         const char* _baudRate;
 
         int _recordCount;
+        int _recordFreq;
+        long _sleeptime;
 
         char* _addrinfo[8];
         char* addrInfo(int index)      { return _addrinfo[index]; }

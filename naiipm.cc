@@ -252,15 +252,22 @@ bool naiipm::setActiveAddress(int fd, int i)
     return true;
 }
 
+// Set the recordPeriod per measureRate so can call RECORD only every
+// recordFreq times that MEASURE / STATUS are called.
+// measureRate is in hz; recordPeriod in minutes
+// So if measureRate is 1 and recordPeriod is min, only send RECORD command
+// after send 600 MEASURE/STATUS commands.
+void naiipm::setRecordFreq()
+{
+     _recordFreq = (int)(atoi(_recordPeriod)*60.0) * atoi(_measureRate);
+}
+
+
 // Determine queries to send and process.
 bool naiipm::loop(int fd)
 {
     std::string msg;
 
-    // Set the recordPeriod per measureRate so can call RECORD only every
-    // recordFreq times through this loop.
-    // measureRate is in hz; recordPeriod in minutes
-    float recordFreq = (int)(atoi(_recordPeriod)*60.0)/atoi(_measureRate);
     _recordCount++;
 
     for (int i=0; i < atoi(numAddr()); i++)
@@ -309,7 +316,7 @@ bool naiipm::loop(int fd)
             std::bitset<4> r = x;
             if ((r &= 0b0100) == 4)  // RECORD command requested
             {
-                if (_recordCount >= recordFreq)
+                if (_recordCount >= _recordFreq)
                 {
                     msg = "RECORD?";
                     if(not send_command(fd, msg)) { return false; }
@@ -320,21 +327,22 @@ bool naiipm::loop(int fd)
         }
     }
 
-    // rate for STATUS and MEASURE is quicker than RECORD, so use that
-    // as the base. Rather than setting a timer, to get responses at the
-    // exact interval requested, since this is housekeeping data and timing
-    // is not critical, set sleep so we get at least one response per
-    // requested time period. From test runs on Gigajoules, request for all
-    // three commands returns in ~0.2 seconds, so subtract that from
-    // requested rate.
-    // TBD: Will likely need to adjust this when the iPM is mounted on the
-    // aircraft.
-    // Also fix so if measurerate is 5 in XML, that gets us 5 samples
-    // per second.
-    usleep((atoi(_measureRate) - 0.2) * 1000000);
-
     return true;
 
+}
+
+// rate for STATUS and MEASURE is quicker than RECORD, so use that as the base.
+// Rather than setting a timer to get responses at the exact interval requested,
+// since this is housekeeping data and timing is not critical, set sleep so we
+// get at least one response per requested time period. From test runs on
+// Gigajoules, request for all three commands returns in ~0.2 seconds, so
+// subtract that from requested rate.
+void naiipm::sleep()
+{
+    // TBD: Will likely need to adjust this when the iPM is mounted on the
+    // aircraft.
+    _sleeptime = ((1000000 / atoi(_measureRate)) - 200000);  // usec
+    usleep(_sleeptime);
 }
 
 void naiipm::setData(std::string cmd, int len)

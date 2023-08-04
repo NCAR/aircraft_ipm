@@ -151,6 +151,44 @@ TEST_F(IpmTest, ipmParseAddrInfo)
 }
 
 /********************************************************************
+ ** Test implementation of measureRate (hz) and recordPeriod (minutes)
+ ********************************************************************
+*/
+TEST_F(IpmTest, ipmSleep)
+{
+    ipm.setRate("1");  // hz
+    ipm.sleep();
+    EXPECT_EQ(ipm._sleeptime, 800000);
+
+    ipm.setRate("5");  // hz
+    ipm.sleep();
+    EXPECT_EQ(ipm._sleeptime, 0);
+
+    ipm.setRate("2");  // hz
+    ipm.sleep();
+    EXPECT_EQ(ipm._sleeptime, 300000);
+}
+
+TEST_F(IpmTest, ipmSetRecordFreq)
+{
+    ipm.setRate("1");  // hz
+    ipm.setPeriod("10");  // minutes
+    ipm.setRecordFreq();
+    EXPECT_EQ(ipm._recordFreq, 600);
+
+    ipm.setRate("2");  // hz
+    ipm.setPeriod("1");  // minutes
+    ipm.setRecordFreq();
+    EXPECT_EQ(ipm._recordFreq, 120);
+
+    ipm.setRate("5");  // hz
+    ipm.setPeriod("1");  // minutes
+    ipm.setRecordFreq();
+    EXPECT_EQ(ipm._recordFreq, 300);
+}
+
+
+/********************************************************************
  ** Test storing and retrieving command line args.  ipm_ctrl accepts
  ** the following command line arguments:
  **  -p <port>           port iPM is connected to

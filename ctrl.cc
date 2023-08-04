@@ -155,7 +155,9 @@ int main(int argc, char * argv[])
         // Cycle on requested commands
         while (true)
         {
+            ipm.setRecordFreq();
             status = ipm.loop(fd);
+            ipm.sleep();
         }
     }
 
