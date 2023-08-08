@@ -126,13 +126,13 @@ class IpmEmulator():
                 if fullcmd == msg:
                     logger.debug(fullcmd)
                     print('Sending response ' +
-                          str(cmd.response.encode('utf-8')))
-                    self.sport.write(cmd.response.encode('utf-8'))
+                          str(cmd.response.encode('iso-8859-1')))
+                    self.sport.write(cmd.response.encode('iso-8859-1'))
                     # If the command has a binary component, send that too
                     if cmd.bytes != '':
                         print('Sending binary data ' + str(cmd.bytes))
                         print('of length ' + str(len(cmd.bytes)))
-                        self.sport.write(cmd.bytes.encode('utf-8'))
+                        self.sport.write(cmd.bytes.encode('iso-8859-1'))
                     sys.stdout.flush()
 
 

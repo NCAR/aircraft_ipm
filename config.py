@@ -16,13 +16,18 @@ import numpy
 # the reported response. Still not sure this is better than a
 # dictionary...
 
-# Some sample data from instrument runs in the DSM lab
+# Some sample data from instrument runs in the DSM lab, with a few changes
+# since the Python to C link is causing issues with some non-printing chars.
 TEST_DATA = '\0\0?\0?\0\0\0\0\0P\0\0\0\0\0#\0?\0?\0L\x02\n'  # 24 bytes
-MEASURE_DATA = 'X\0\0\0P\0?\0?\0\0\0#\0#\0\0\0%\0\0\0\0\0?' \
-        '\0?\0?\0\0\0\0\0\n'  # 34 bytes
+MEASURE_DATA = '\x58\x02\x00\x00\x05\x02\x8b\x02\x8b\x02\x00\x00\x06\x06' \
+               '\xFC\x06\x00\x00\x1B\x00\x1B\x00\x09\x00\xC9\x0D\xC8\x06' \
+               '\x06\x06\x1B\x1B\x01\x01\n'  # 34 bytes
 STATUS_DATA = '\0\0\0\0\0\0\0\0\0\0\0\0\n'  # 12 bytes
-RECORD_DATA = '\0\09\0\0\0???\0\0\0\0\0\0\0\0\0?\0?\0?\0?\0\0\0\0\0X\0X\0\0' \
-        '\0B\0\0\0/\0\0\0\0\0\0?\0?\0\0?\0;\0\0\0C\0\0\0\0\0M?/?\n'  # 68 bytes
+RECORD_DATA = '\x00\x02\x63\x00\x00\x00\x8B\x44\x69\x05\x00\x00\x00\x00\x00' \
+              '\x00\x00\x00\xD1\x00\x9B\x05\xD1\x00\x9B\x05\x00\x00\x00\x00' \
+              '\x45\x02\x58\x02\x00\x00\x5E\x00\x00\x00\x55\x00\x00\x00\x0d' \
+              '\x00\x1B\x71\x1B\x71\x01\x01\x05\x06\x5A\x06\x05\x06\x53\x06' \
+              '\x00\x00\x18\x00\x0d\x1B\x7C\x08\n'  # 68 bytes
 
 # Tuple to store iPM commands and responses
 Command = namedtuple('Command', ['msg', 'response', 'bytes'])
