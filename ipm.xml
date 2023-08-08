@@ -159,9 +159,9 @@
           <parameter name="recordperiod" type="int" value="10"/>
           <parameter name="baudrate" type="int" value="115200"/>
           <parameter name="num_addr" type="int" value="3"/>
-          <parameter name="dev0" type="string" value="0,1,5,30101"/>  <!-- addr, numphases, procqueries, port -->
-          <parameter name="dev1" type="string" value="1,1,5,30102"/>  <!-- addr, numphases, procqueries, port -->
-          <parameter name="dev2" type="string" value="4,3,7,30103"/>  <!-- addr, numphases, procqueries, port -->
+          <parameter name="dev0" type="string" value="0,1,5,30101"/>  <!-- addr, scalefactor, procqueries, port -->
+          <parameter name="dev1" type="string" value="1,1,5,30102"/>  <!-- addr, scalefactor, procqueries, port -->
+          <parameter name="dev2" type="string" value="4,1,7,30103"/>  <!-- addr, scalefactor, procqueries, port -->
       </sensor>
       <output class="RawSampleOutputStream">
         <socket type="mcrequest"/>

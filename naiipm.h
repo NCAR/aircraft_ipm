@@ -107,6 +107,7 @@ class naiipm
         const char* numAddr()      { return _numaddr; }
         void setAddrInfo(int optopt, char addrinfo[])
             { _addrinfo[optopt] = addrinfo; }
+        void parse_addrInfo(int index);
 
         void setInteractive() { _interactive = true; }
         bool Interactive()    { return _interactive; };
@@ -128,7 +129,7 @@ class naiipm
     private:
         char buffer[1000];
 
-        bool parseData(std::string cmd, int nphases);
+        bool parseData(std::string cmd, int addrIndex);
         void parseBitresult(uint16_t *sp);
         void parseMeasure(uint8_t *cp, uint16_t *sp);
         void parseStatus(uint8_t *cp, uint16_t *sp);
@@ -149,7 +150,6 @@ class naiipm
 
         char* _addrinfo[8];
         char* addrInfo(int index)      { return _addrinfo[index]; }
-        void parse_addrInfo(int index);
 
         int _addr[8];
         int addr(int index)   { return _addr[index]; }
@@ -157,10 +157,10 @@ class naiipm
             { _addr[index] = atoi(ptr); }
         bool setActiveAddress(int fd, int i);
 
-        int _numphases[8];
-        int numphases(int index)   { return _numphases[index]; }
-        void setNumphases(int index, char* ptr)
-            { _numphases[index] = atoi(ptr); }
+        int _scaleflag[8];
+        int scaleflag(int index)   { return _scaleflag[index]; }
+        void setScaleFlag(int index, char* ptr)
+            { _scaleflag[index] = atoi(ptr); }
 
         int _procqueries[8];
         int procqueries(int index)   { return _procqueries[index]; }

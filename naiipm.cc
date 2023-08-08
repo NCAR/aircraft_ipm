@@ -61,9 +61,8 @@ bool naiipm::init(int fd)
     for (int i=0; i < atoi(numAddr()); i++)
     {
         std::string msg;
-        parse_addrInfo(i);
         std::cout << "Info for address " << i << " is " << addr(i) << ","
-            << numphases(i) << "," << procqueries(i) << "," << addrport(i)
+            << scaleflag(i) << "," << procqueries(i) << "," << addrport(i)
             << std::endl;
         bool status = setActiveAddress(fd, i);
         // TBD: If setActiveAddress command failed (corruption) during init?
@@ -96,9 +95,7 @@ bool naiipm::init(int fd)
         if(not send_command(fd, msg)) { return false; }
         msg = "BITRESULT?";
         if(not send_command(fd, msg)) { return false; }
-        status = parseData(msg, 0);  // parse binary part of BITRESULT?
-
-
+        status = parseData(msg, i);
     }
 
     return true;
@@ -203,7 +200,7 @@ void naiipm::close_udp()
 }
 
 // Parse the addrInfo block from the command line
-// Block contains addr,numphases,procqueries,port
+// Block contains addr,scaleflag,procqueries,port
 void naiipm::parse_addrInfo(int i)
 {
     char *addrinfo = addrInfo(i);
@@ -219,10 +216,17 @@ void naiipm::parse_addrInfo(int i)
     }
 
     ptr = strtok(NULL, ",");
-    setNumphases(i, ptr);
+    setScaleFlag(i, ptr);
+    if (scaleflag(i) != 1 && scaleflag(i) != 0)  // only two valid values
+    {
+        std::cout << "scaleflag " << scaleflag(i) << " is not a valid value.";
+        std::cout << " Set to 1 (scaling enabled)" << std::endl;
+        char flag = '1';
+        setScaleFlag(i, &flag);
+    }
     if (Debug())
     {
-        std::cout << "numphases: " << numphases(i) << std::endl;
+        std::cout << "scaleflag: " << scaleflag(i) << std::endl;
     }
 
     ptr = strtok(NULL, ",");
@@ -272,14 +276,6 @@ bool naiipm::loop(int fd)
 
     for (int i=0; i < atoi(numAddr()); i++)
     {
-        // ‘numphases’ (integer) indicates whether 1 phase, or 3-phases of
-        // data are to be capture. Should only be =1 or =3
-        int nphases = numphases(i);
-        if (nphases != 1 && nphases != 3)
-        {
-            //TBD: log numphases error
-            exit(1);
-        }
 
         // ‘procqueries’ is an integer representation of 3-bit Boolean
         // field indicating whether query responses [RECORD,MEASURE,STATUS]
@@ -304,14 +300,14 @@ bool naiipm::loop(int fd)
             {
                 msg = "MEASURE?";
                 if(not send_command(fd, msg)) { return false; }
-                bool status = parseData(msg, nphases);
+                bool status = parseData(msg, i);
             }
             std::bitset<4> s = x;
             if ((s &= 0b0001) == 1)  // STATUS command requested
             {
                 msg = "STATUS?";
                 if(not send_command(fd, msg)) { return false; }
-                bool status = parseData(msg, nphases);
+                bool status = parseData(msg, i);
             }
             std::bitset<4> r = x;
             if ((r &= 0b0100) == 4)  // RECORD command requested
@@ -320,7 +316,7 @@ bool naiipm::loop(int fd)
                 {
                     msg = "RECORD?";
                     if(not send_command(fd, msg)) { return false; }
-                    bool status = parseData(msg, nphases);
+                    bool status = parseData(msg, i);
                     _recordCount = 0;
                 }
             }
@@ -407,11 +403,11 @@ void naiipm::get_response(int fd, int len, bool bin)
         {
             std::bitset<8> x(c);
             unsigned int i = (unsigned char)c;
-            if (Debug())
-            {
-                std::cout << n+1 << ": [" << c << "] " << i << " : " << x
-                    << std::endl;
-            }
+            //if (Debug())
+            //{
+            std::cout << n+1 << ": [" << c << "] " << std::dec << i << ",";
+            std::cout << std::hex << i << " : " << x << std::dec << std::endl;
+            //}
             buffer[n] = c;
             // linefeed is a valid value mid-binary query so only test
             // if NOT reading binary data
@@ -626,21 +622,22 @@ bool naiipm::readInput(int fd)
     if (_ipm_data.find(cmd) != _ipm_data.end())  // found cmd in binary map
     {
         // Parse binary data
-        // TBD: Determine desired funtionality re: 1- or 3-phase here
-        parseData(cmd, 1); // Hardcode 1-phase in interactive mode for now
+        parseData(cmd, 0);  // In interactive mode, only one address is used
     }
 
     return true;
 }
 
-bool naiipm::parseData(std::string cmd, int nphases)
+bool naiipm::parseData(std::string cmd, int adr)
 {
-    // nphases can be 1 or 3. Any other value is ignored.
-    // retrieve binary data
     if (Debug())
     {
         std::cout << '{' << cmd << '}' << std::endl;
+        std::cout << "In parseData: Info for address " << adr << " is " << addr(adr) << ","
+            << scaleflag(adr) << "," << procqueries(adr) << "," << addrport(adr)
+            << std::endl;
     }
+    // retrieve binary data
     char* data = getData(cmd); // data content
 
     // Create some pointers to access data of various lengths
@@ -653,39 +650,56 @@ bool naiipm::parseData(std::string cmd, int nphases)
         parseBitresult(sp);
     }
 
-    if (cmd == "RECORD?" && nphases == 1) {
+    if (cmd == "RECORD?") {
         parseRecord(cp, sp, lp);
         if (Debug())
         {
             std::cout << record.TIME/60000 << " minutes since power-up"
                 << std::endl;
         }
-        snprintf(buffer, 255, "RECORD,%u,%u,%u,%u,%u,%u,%.2f,%.2f,%.2f,%.2f,"
-                 "%.2f,%.2f,%.2f,%.2f,%.4f,%.4f,%.4f,%.4f,%.4f,%.4f,%.2f,"
-                 "%.2f,%.2f,%.2f,%.2f,%.2f,%.2f,%.2f,%.2f,%.2f,%.2f,%.2f,"
-                 "%u\r\n",
-                 record.EVTYPE, record.OPSTATE, record.POWERCNT,
-                 record.TIME, record.TFLAG, record.CFLAG,
-                 record.VRMSMINA * _deci, record.VRMSMAXA * _deci,
-                 record.VRMSMINB * _deci, record.VRMSMAXB * _deci,
-                 record.VRMSMINC * _deci, record.VRMSMAXC * _deci,
-                 record.FREQMIN * _deci, record.FREQMAX * _deci,
-                 record.VDCMINA * _milli, record.THDMAXA * _milli,
-                 record.THDMINB * _milli, record.VDCMAXB * _milli,
-                 record.VDCMINC * _milli, record.VDCMAXC * _milli,
-                 record.THDMINA * _deci, record.THDMAXA * _deci,
-                 record.THDMINB * _deci, record.THDMAXB * _deci,
-                 record.THDMINC * _deci, record.THDMAXC * _deci,
-                 record.VPKMINA * _deci, record.VPKMAXA * _deci,
-                 record.VPKMINB * _deci, record.VPKMAXB * _deci,
-                 record.VPKMINC * _deci, record.VPKMAXC * _deci,
-                 record.CRC);
+        if (scaleflag(adr) == 1) {
+            snprintf(buffer, 255, "RECORD,%u,%u,%u,%u,%u,%u,%.2f,%.2f,%.2f,"
+                "%.2f,%.2f,%.2f,%.2f,%.2f,%.4f,%.4f,%.4f,%.4f,%.4f,%.4f,%.2f,"
+                "%.2f,%.2f,%.2f,%.2f,%.2f,%.2f,%.2f,%.2f,%.2f,%.2f,%.2f,"
+                "%u\r\n",
+                record.EVTYPE, record.OPSTATE, record.POWERCNT,
+                record.TIME, record.TFLAG, record.CFLAG,
+                record.VRMSMINA * _deci, record.VRMSMAXA * _deci,
+                record.VRMSMINB * _deci, record.VRMSMAXB * _deci,
+                record.VRMSMINC * _deci, record.VRMSMAXC * _deci,
+                record.FREQMIN * _deci, record.FREQMAX * _deci,
+                record.VDCMINA * _milli, record.THDMAXA * _milli,
+                record.THDMINB * _milli, record.VDCMAXB * _milli,
+                record.VDCMINC * _milli, record.VDCMAXC * _milli,
+                record.THDMINA * _deci, record.THDMAXA * _deci,
+                record.THDMINB * _deci, record.THDMAXB * _deci,
+                record.THDMINC * _deci, record.THDMAXC * _deci,
+                record.VPKMINA * _deci, record.VPKMAXA * _deci,
+                record.VPKMINB * _deci, record.VPKMAXB * _deci,
+                record.VPKMINC * _deci, record.VPKMAXC * _deci,
+                record.CRC);
+        } else {
+            snprintf(buffer, 255, "RECORD,%02x,%02x,%08x,%08x,%08x,%08x,%04x,"
+                "%04x,%04x,%04x,%04x,%04x,%04x,%04x,%04x,%04x,%04x,%04x,%04x,"
+                "%04x,%02x,%02x,%02x,%02x,%02x,%02x,%04x,%04x,%04x,%04x,%04x,"
+                "%04x,%08x\r\n",
+                record.EVTYPE, record.OPSTATE, record.POWERCNT, record.TIME,
+                record.TFLAG, record.CFLAG, record.VRMSMINA, record.VRMSMAXA,
+                record.VRMSMINB, record.VRMSMAXB, record.VRMSMINC,
+                record.VRMSMAXC, record.FREQMIN, record.FREQMAX,
+                record.VDCMINA, record.THDMAXA, record.THDMINB, record.VDCMAXB,
+                record.VDCMINC, record.VDCMAXC, record.THDMINA, record.THDMAXA,
+                record.THDMINB, record.THDMAXB, record.THDMINC, record.THDMAXC,
+                record.VPKMINA, record.VPKMAXA, record.VPKMINB, record.VPKMAXB,
+                record.VPKMINC, record.VPKMAXC, record.CRC);
+        }
         send_udp(buffer);
     }
 
-    if (cmd == "MEASURE?" && nphases == 1) {
+    if (cmd == "MEASURE?") {
         parseMeasure(cp, sp);
-        snprintf(buffer, 255, "MEASURE,%.2f,%.2f,%.2f,%.2f,%.2f,%.2f,%.2f,"
+        if (scaleflag(adr) == 1) {
+            snprintf(buffer, 255, "MEASURE,%.2f,%.2f,%.2f,%.2f,%.2f,%.2f,%.2f,"
                  "%.2f,%.4f,%.4f,%.4f,%.2f,%.2f,%.2f,%.2f,%.2f,%.2f,%u\r\n",
                  measure.FREQ * _deci, measure.TEMP * _deci,
                  measure.VRMSA * _deci, measure.VRMSB * _deci,
@@ -696,16 +710,33 @@ bool naiipm::parseData(std::string cmd, int nphases)
                  measure.PHB * _deci, measure.PHC * _deci,
                  measure.THDA * _deci, measure.THDB * _deci,
                  measure.THDC * _deci, measure.POWEROK);
+        } else {
+            snprintf(buffer, 255, "MEASURE,%04x,%04x,%04x,%04x,%04x,%04x,%04x,"
+                 "%04x,%04x,%04x,%04x,%04x,%04x,%04x,%02x,%02x,%02x,%02x\r\n",
+                 measure.FREQ, measure.TEMP,
+                 measure.VRMSA, measure.VRMSB,
+                 measure.VRMSC, measure.VPKA,
+                 measure.VPKB, measure.VPKC,
+                 measure.VDCA, measure.VDCB,
+                 measure.VDCC, measure.PHA,
+                 measure.PHB, measure.PHC,
+                 measure.THDA, measure.THDB,
+                 measure.THDC, measure.POWEROK);
+        }
         send_udp(buffer);
     }
 
-    // TBD: Implement parsing of 3-phase data.
-
-    if (cmd == "STATUS?") {  // STATUS returns same UDP packet for both phases
+    if (cmd == "STATUS?") {
         parseStatus(cp, sp);
-        snprintf(buffer, 255, "STATUS,%u,%u,%u,%u,%u\r\n", status.OPSTATE,
-                 status.POWEROK, status.TRIPFLAGS, status.CAUTIONFLAGS,
-                 status.BITSTAT);
+        if (scaleflag(adr) == 1) {
+            snprintf(buffer, 255, "STATUS,%u,%u,%u,%u,%u\r\n", status.OPSTATE,
+                status.POWEROK, status.TRIPFLAGS, status.CAUTIONFLAGS,
+                status.BITSTAT);
+        } else {
+            snprintf(buffer, 255, "STATUS,%02x,%02x,%04x,%04x,%04x\r\n",
+                status.OPSTATE, status.POWEROK, status.TRIPFLAGS,
+                status.CAUTIONFLAGS, status.BITSTAT);
+        }
         send_udp(buffer);
     }
 

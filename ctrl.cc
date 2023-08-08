@@ -67,6 +67,7 @@ void processArgs(int argc, char *argv[])
             case '6':
             case '7':
                 ipm.setAddrInfo(opt-'0', optarg);
+                ipm.parse_addrInfo(opt-'0');
                 nInfo++;
                 break;
             case 'i':  // Run in interactive (menu) mode
@@ -111,7 +112,7 @@ void processArgs(int argc, char *argv[])
         std::cout << "\t-b <baudrate>\t\tbaud rate" << std::endl;
         std::cout << "\t-n <num_addr>\t\tnumber of active addresses on iPM"
             << std::endl;
-        std::cout << "\t-# <addr,numphases,procqueries,port>\n"
+        std::cout << "\t-# <addr,scaleflag,procqueries,port>\n"
             "\t\t\t\tnumber 0 to n-1 followed by info block" << std::endl;
         std::cout << "\t-i\t\t\trun in interactive mode (optional)"
             << std::endl;

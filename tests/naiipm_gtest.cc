@@ -45,6 +45,50 @@ private:
  ** Test parsing response strings
  ********************************************************************
 */
+TEST_F(IpmTest, ipmParseData)
+{
+    ipm.open_udp("192.168.84.2", 30101);
+
+    std::string str;
+    char addrinfo[12];
+
+    strcpy(addrinfo, "0,0,5,30101");  // do not scale
+    ipm.setAddrInfo(0, addrinfo);
+    ipm.parse_addrInfo(0);
+
+    ipm.parseData("MEASURE?", 0);
+    EXPECT_EQ(measure.FREQ,600);
+    str = ipm.buffer;
+    EXPECT_EQ(str,"MEASURE,0258,0205,048b,048b,0000,0604,05fc,0000,001c,001c,0009,0dc9,06c8,0707,1b,1b,01,01\r\n");
+    ipm.parseData("STATUS?", 0);
+    EXPECT_EQ(measure.FREQ,600);
+    str = ipm.buffer;
+    EXPECT_EQ(str,"STATUS,02,01,0000,0000,0000\r\n");
+    ipm.parseData("RECORD?", 0);
+    EXPECT_EQ(measure.FREQ,600);
+    str = ipm.buffer;
+    EXPECT_EQ(str,"RECORD,00,02,00000063,0469448b,00000000,00000000,00d1,049b,00d1,049b,0000,0000,0245,0258,0000,0071,001a,0055,0000,0015,1a,71,1a,71,01,01,0604,065a,0604,0653,0000,0018,087c1b13\r\n");
+
+    strcpy(addrinfo, "0,1,5,30101");  // scale
+    ipm.setAddrInfo(0, addrinfo);
+    ipm.parse_addrInfo(0);
+
+    ipm.parseData("MEASURE?", 0);
+    EXPECT_EQ(measure.FREQ,600);
+    str = ipm.buffer;
+    EXPECT_EQ(str,"MEASURE,60.00,51.70,116.30,116.30,0.00,154.00,153.20,0.00,0.0280,0.0280,0.0090,352.90,173.60,179.90,2.70,2.70,0.10,1\r\n");
+    ipm.parseData("STATUS?", 0);
+    EXPECT_EQ(measure.FREQ,600);
+    str = ipm.buffer;
+    EXPECT_EQ(str,"STATUS,2,1,0,0,0\r\n");
+    ipm.parseData("RECORD?", 0);
+    EXPECT_EQ(measure.FREQ,600);
+    str = ipm.buffer;
+    EXPECT_EQ(str,"RECORD,0,2,99,74007691,0,0,20.90,117.90,20.90,117.90,0.00,0.00,58.10,60.00,0.0000,0.1130,0.0260,0.0850,0.0000,0.0210,2.60,11.30,2.60,11.30,0.10,0.10,154.00,162.60,154.00,161.90,0.00,2.40,142351123\r\n");
+
+    ipm.close_udp();
+}
+
 TEST_F(IpmTest, ipmParseBitresult)
 {
     char *data = ipm.getData("BITRESULT?");
@@ -145,7 +189,7 @@ TEST_F(IpmTest, ipmParseAddrInfo)
     ipm.setAddrInfo(0, addrinfo);
     ipm.parse_addrInfo(0);
     EXPECT_EQ(ipm.addr(0), 0);
-    EXPECT_EQ(ipm.numphases(0), 1);
+    EXPECT_EQ(ipm.scaleflag(0), 1);
     EXPECT_EQ(ipm.procqueries(0), 5);
     EXPECT_EQ(ipm.addrport(0), 30101);
 }
@@ -197,7 +241,7 @@ TEST_F(IpmTest, ipmSetRecordFreq)
  **  -r <recordperiod>   period of RECORD queries (minutes)
  **  -b <baudrate>       baud rate
  **  -n <num_addr>       number of active addresses on iPM
- **  -# <addr,numphases,procqueries,port>
+ **  -# <addr,scaleflag,procqueries,port>
  **                      number 0 to n-1 followed by info block
  **  -i                  run in interactive mode (optional)
  **
