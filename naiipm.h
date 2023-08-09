@@ -198,5 +198,11 @@ class naiipm
         // unit conversions
         float _deci;   // 0.1
         float _milli;  // 0.001
+
+
+        // CRC validation
+        uint32_t _crcTable[256];
+        void generateCRCTable();
+        uint32_t calculateCRC32 (unsigned char *buf, int ByteCount);
 };
 

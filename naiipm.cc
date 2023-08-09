@@ -41,6 +41,7 @@ naiipm::naiipm():_interactive(false)
 
     _recordCount = 0;
 
+    generateCRCTable();
 }
 
 naiipm::~naiipm()
@@ -644,6 +645,7 @@ bool naiipm::parseData(std::string cmd, int adr)
     uint8_t *cp = (uint8_t *)data;
     uint16_t *sp = (uint16_t *)data;
     uint32_t *lp = (uint32_t *)data;
+    unsigned char *up = (unsigned char *)data;
 
     // parse data
     if (cmd == "BITRESULT?") {
@@ -652,6 +654,31 @@ bool naiipm::parseData(std::string cmd, int adr)
 
     if (cmd == "RECORD?") {
         parseRecord(cp, sp, lp);
+        // Compare CRC to Reversed 0xEDB88320 at
+        // https://www.scadacore.com/tools/programming-calculators/online-checksum-calculator/
+        // My crc calculation here match the online tool, but the CRC returned
+        // by the iPM does not. I tried both including and excluding the
+        // response length in the CRC but cannot match the returned value.
+        // Leaving the code here so that this can be investigated more later of
+        // desired.
+        // Print a hex line of data suitable for copy/paste into the above
+        // online calculator.
+        /* for (int j=0;j<64;j++)
+        {
+             char c = cp[j];
+             unsigned int i = (unsigned char)c;
+             std::cout << std::setfill ('0') << std::setw(2) << std::hex << i;
+        }
+        std::cout << std::dec << std::endl; */
+
+        // Print out the CRC calculated here and the CRC from the data in hex
+        // so can easily compare to output from online calculator.
+        uint32_t crc = calculateCRC32(&up[0], 64);
+        //std::cout << std::hex << crc << std::dec << " : calculated CRC "
+        //    << std::endl;
+        //std::cout << std::hex << record.CRC << std::dec << " : CRC from iPM"
+        //    << std::endl
+
         if (Debug())
         {
             std::cout << record.TIME/60000 << " minutes since power-up"
@@ -842,4 +869,38 @@ void naiipm::parseStatus(uint8_t *cp, uint16_t *sp)
     status.TRIPFLAGS = (((long)sp[2]) << 16) | sp[1];
     status.CAUTIONFLAGS = (((long)sp[4]) << 16) | sp[3];
     status.BITSTAT = sp[5];   // bitStatus
+}
+
+void naiipm::generateCRCTable()
+{
+    uint32_t crc, poly;
+    int i, j;
+
+    poly = 0xEDB88320;
+    for (i=0; i < 256; i++)
+    {
+        crc = i;
+        for (j = 8; j > 0; j--)
+        {
+            if (crc & 1)
+                crc = (crc >> 1) ^ poly;
+            else
+                crc >>= 1;
+        }
+        _crcTable[i] = crc;
+    }
+}
+
+uint32_t naiipm::calculateCRC32 (unsigned char *buf, int ByteCount)
+{
+    uint32_t crc;
+    int i, j, ch;
+
+    crc = 0xFFFFFFFF;
+    for (i=0; i < ByteCount; i++)
+    {
+        ch = *buf++;
+        crc = (crc>>8) ^ _crcTable[(crc ^ ch) & 0xFF];
+    }
+    return (crc ^ 0xFFFFFFFF);
 }
