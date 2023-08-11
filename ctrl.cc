@@ -168,7 +168,7 @@ int main(int argc, char * argv[])
     processArgs(argc, argv);
     int fd = ipm.open_port(ipm.Port());
 
-    ipm.open_udp(acserver, ipm.addrport(i));
+    ipm.open_udp(acserver);
 
     bool status = true;
     if (ipm.Interactive())
@@ -200,7 +200,7 @@ int main(int argc, char * argv[])
     std::cout << "Exiting ipm_ctrl" << std::endl;
 
     // Close socket descriptor
-    ipm.close_udp();
+    ipm.close_udp(-1);
 
     ipm.close_port(fd);
     exit(1);

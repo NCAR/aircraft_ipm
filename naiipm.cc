@@ -69,7 +69,7 @@ bool naiipm::init(int fd)
         std::cout << "Info for address " << i << " is " << addr(i) << ","
             << procqueries(i) << "," << addrport(i)
             << std::endl;
-        bool status = setActiveAddress(fd, i);
+        bool status = setActiveAddress(fd, addr(i));
         // TBD: If setActiveAddress command failed (corruption) during init?
 
         // Turn Device OFF, wait > 100ms then turn ON to reset state
@@ -171,40 +171,57 @@ void naiipm::close_port(int fd)
     close(fd);
 }
 
-// Create UDP socket to send packets to nidas
-void naiipm::open_udp(const char *ip, int port)
+// Create UDP sockets to send packets to nidas
+// Each address needs it's own socket so it can send over it's own port.
+void naiipm::open_udp(const char *ip)
 {
-    //  AF_INET for IPv4/ AF_INET6 for IPv6
-    //  SOCK_STREAM for TCP / SOCK_DGRAM for UDP
-    _sock = socket(AF_INET, SOCK_DGRAM, 0);
-
-    if (_sock < 0)
+    for (int i=0; i<atoi(numAddr()); i++)
     {
-        std::cout << "Socket creation failed" << std::endl;
-        exit(EXIT_FAILURE);
+        //  AF_INET for IPv4/ AF_INET6 for IPv6
+        //  SOCK_STREAM for TCP / SOCK_DGRAM for UDP
+        _sock[i] = socket(AF_INET, SOCK_DGRAM, 0);
+
+        if (_sock[i] < 0)
+        {
+            std::cout << "Socket creation failed" << std::endl;
+            exit(EXIT_FAILURE);
+        }
+        memset(&_servaddr, 0, sizeof(_servaddr));
+        _servaddr.sin_family = AF_INET;
+        _servaddr.sin_port = htons(addrport(i));
+        _servaddr.sin_addr.s_addr = inet_addr(ip);
+
+        std::cout << i << " : " <<  _sock[i] << std::endl;
     }
-    memset(&_servaddr, 0, sizeof(_servaddr));
-    _servaddr.sin_family = AF_INET;
-    _servaddr.sin_port = htons(port);
-    _servaddr.sin_addr.s_addr = inet_addr(ip);
+
 }
 
 // Send a UDP message to nidas
-void naiipm::send_udp(const char *buf)
+void naiipm::send_udp(const char *buf, int i)
 {
-    std::cout << "sending UDP string " << buf;
-    if (sendto(_sock, (const char *)buf, strlen(buf), 0,
+    std::cout << "processing address index " << i << " : " << _sock[i] << std::endl;
+    std::cout << "sending to port " << addrport(i) << " UDP string " << buf;
+    if (sendto(_sock[i], (const char *)buf, strlen(buf), 0,
             (const struct sockaddr *) &_servaddr, sizeof(_servaddr)) == -1)
     {
         std::cout << "Sending packet to nidas returned error " << errno
             << std::endl;
+	exit(1);
     }
 }
 
 // Close UDP port
-void naiipm::close_udp()
+void naiipm::close_udp(int adr)
 {
-    close(_sock);
+    if (adr == -1)
+    {
+        for (int i=0; i<atoi(numAddr()); i++)
+        {
+            close(_sock[i]);
+        }
+    } else {
+        close(_sock[adr]);
+    }
 }
 
 // Parse the addrInfo block from the command line
@@ -247,10 +264,11 @@ bool naiipm::parse_addrInfo(int i)
 }
 
 // Set active address
-bool naiipm::setActiveAddress(int fd, int i)
+bool naiipm::setActiveAddress(int fd, int addr)
 {
     std::string msg = "ADR";
-    std::string msgarg = std::to_string(i);
+    std::string msgarg = std::to_string(addr);
+
     if(not send_command(fd, msg, msgarg)) { return false; }
 
     return true;
@@ -291,7 +309,7 @@ bool naiipm::loop(int fd)
                 << std::endl;
         }
 
-        if (setActiveAddress(fd, i))
+        if (setActiveAddress(fd, addr(i)))
         {
             // Per software requirements, MEASURE? Is queried first, followed
             // by STATUS?, followed by RECORD?
@@ -819,7 +837,7 @@ bool naiipm::parseData(std::string cmd, int adr)
         std::cout << buffer << std::endl;
     } else
     {
-        send_udp(buffer);
+        send_udp(buffer, adr);
     }
 
     return true;

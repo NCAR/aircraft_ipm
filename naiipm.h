@@ -96,9 +96,9 @@ class naiipm
         int open_port(const char *port);
         void close_port(int fd);
 
-        void open_udp(const char *ip, int port);
-        void send_udp(const char *buffer);
-        void close_udp();
+        void open_udp(const char *ip);
+        void send_udp(const char *buffer, int adr);
+        void close_udp(int adr);
 
         void setRate(const char rate[])   { _measureRate = rate; }
         void setPeriod(const char period[])   { _recordPeriod = period; }
@@ -108,7 +108,6 @@ class naiipm
         void setAddrInfo(int optopt, char addrinfo[])
             { _addrinfo[optopt] = addrinfo; }
         bool parse_addrInfo(int index);
-        int addrport(int index)   { return _addrport[index]; }
 
         void setInteractive() { _interactive = true; }
         bool Interactive()    { return _interactive; };
@@ -166,7 +165,7 @@ class naiipm
         int addr(int index)   { return _addr[index]; }
         void setAddr(int index, char* ptr)
             { _addr[index] = atoi(ptr); }
-        bool setActiveAddress(int fd, int i);
+        bool setActiveAddress(int fd, int addr);
 
         int _scaleflag;
         int scaleflag()   { return _scaleflag; }
@@ -179,6 +178,7 @@ class naiipm
         int _addrport[8];
         void setAddrPort(int index, char* ptr)
             { _addrport[index] = atoi(ptr); }
+        int addrport(int index)   { return _addrport[index]; }
 
         void setData(std::string cmd, int binlen);
         char* getData(std::string msg)
@@ -192,7 +192,7 @@ class naiipm
         bool _verbose;
         bool _emulate;
         struct sockaddr_in _servaddr;
-        int _sock;
+        int _sock[8];
 
         // Map message to expected response
         std::map<std::string, std::string>_ipm_commands;
