@@ -199,7 +199,6 @@ void naiipm::open_udp(const char *ip)
 // Send a UDP message to nidas
 void naiipm::send_udp(const char *buf, int i)
 {
-    std::cout << "processing address index " << i << " : " << _sock[i] << std::endl;
     std::cout << "sending to port " << addrport(i) << " UDP string " << buf;
     if (sendto(_sock[i], (const char *)buf, strlen(buf), 0,
             (const struct sockaddr *) &_servaddr, sizeof(_servaddr)) == -1)
