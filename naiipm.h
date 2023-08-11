@@ -191,7 +191,7 @@ class naiipm
         const char* _cmd;
         bool _verbose;
         bool _emulate;
-        struct sockaddr_in _servaddr;
+        struct sockaddr_in _servaddr[8];
         int _sock[8];
 
         // Map message to expected response

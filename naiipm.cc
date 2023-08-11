@@ -186,10 +186,10 @@ void naiipm::open_udp(const char *ip)
             std::cout << "Socket creation failed" << std::endl;
             exit(EXIT_FAILURE);
         }
-        memset(&_servaddr, 0, sizeof(_servaddr));
-        _servaddr.sin_family = AF_INET;
-        _servaddr.sin_port = htons(addrport(i));
-        _servaddr.sin_addr.s_addr = inet_addr(ip);
+        memset(&_servaddr[i], 0, sizeof(_servaddr[i]));
+        _servaddr[i].sin_family = AF_INET;
+        _servaddr[i].sin_port = htons(addrport(i));
+        _servaddr[i].sin_addr.s_addr = inet_addr(ip);
 
         std::cout << i << " : " <<  _sock[i] << std::endl;
     }
@@ -201,7 +201,7 @@ void naiipm::send_udp(const char *buf, int i)
 {
     std::cout << "sending to port " << addrport(i) << " UDP string " << buf;
     if (sendto(_sock[i], (const char *)buf, strlen(buf), 0,
-            (const struct sockaddr *) &_servaddr, sizeof(_servaddr)) == -1)
+            (const struct sockaddr *) &_servaddr[i], sizeof(_servaddr[i])) == -1)
     {
         std::cout << "Sending packet to nidas returned error " << errno
             << std::endl;
