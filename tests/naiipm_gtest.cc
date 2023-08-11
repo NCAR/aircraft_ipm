@@ -52,7 +52,8 @@ TEST_F(IpmTest, ipmParseData)
     std::string str;
     char addrinfo[12];
 
-    strcpy(addrinfo, "0,0,5,30101");  // do not scale
+    strcpy(addrinfo, "0,5,30101");
+    ipm.setScaleFlag(0);  // do not scale
     ipm.setAddrInfo(0, addrinfo);
     ipm.parse_addrInfo(0);
 
@@ -69,7 +70,8 @@ TEST_F(IpmTest, ipmParseData)
     str = ipm.buffer;
     EXPECT_EQ(str,"RECORD,00,02,00000063,0469448b,00000000,00000000,00d1,049b,00d1,049b,0000,0000,0245,0258,0000,0071,001a,0055,0000,0015,1a,71,1a,71,01,01,0604,065a,0604,0653,0000,0018,087c1b13\r\n");
 
-    strcpy(addrinfo, "0,1,5,30101");  // scale
+    strcpy(addrinfo, "0,5,30101");
+    ipm.setScaleFlag(1);  // scale
     ipm.setAddrInfo(0, addrinfo);
     ipm.parse_addrInfo(0);
 
@@ -185,11 +187,17 @@ TEST_F(IpmTest, ipmParseRecord)
 TEST_F(IpmTest, ipmParseAddrInfo)
 {
     // Parse the addInfo block
-    char addrinfo[] = "0,1,5,30101";
+    char addrinfo[12];
+    strcpy(addrinfo, "0,1,5,30101");
     ipm.setAddrInfo(0, addrinfo);
-    ipm.parse_addrInfo(0);
+    bool stat = ipm.parse_addrInfo(0);
+    EXPECT_EQ(stat, 0);
+
+    strcpy(addrinfo, "0,5,30101");
+    ipm.setAddrInfo(0, addrinfo);
+    stat = ipm.parse_addrInfo(0);
+    EXPECT_EQ(stat, 1);
     EXPECT_EQ(ipm.addr(0), 0);
-    EXPECT_EQ(ipm.scaleflag(0), 1);
     EXPECT_EQ(ipm.procqueries(0), 5);
     EXPECT_EQ(ipm.addrport(0), 30101);
 }
@@ -241,7 +249,7 @@ TEST_F(IpmTest, ipmSetRecordFreq)
  **  -r <recordperiod>   period of RECORD queries (minutes)
  **  -b <baudrate>       baud rate
  **  -n <num_addr>       number of active addresses on iPM
- **  -# <addr,scaleflag,procqueries,port>
+ **  -# <addr,procqueries,port>
  **                      number 0 to n-1 followed by info block
  **  -i                  run in interactive mode (optional)
  **
@@ -304,11 +312,25 @@ TEST_F(IpmTest, ipmSetGetInteractive)
     EXPECT_EQ(ipm.Interactive(), true);
 }
 
-TEST_F(IpmTest, ipmSetGetDebug)
+TEST_F(IpmTest, ipmSetGetAddress)
 {
-    // Debug mode
-    ipm.setDebug();
-    EXPECT_EQ(ipm.Debug(), true);
+    // address from command line in interactive mode
+    ipm.setAddress("2");
+    EXPECT_EQ(ipm.Address(), "2");
+}
+
+TEST_F(IpmTest, ipmSetGetCmd)
+{
+    // ipm cmd from command line in interactive mode
+    ipm.setCmd("MEASURE?");
+    EXPECT_EQ(ipm.Cmd(), "MEASURE?");
+}
+
+TEST_F(IpmTest, ipmSetGetVerbose)
+{
+    // Verbose mode
+    ipm.setVerbose();
+    EXPECT_EQ(ipm.Verbose(), true);
 }
 
 TEST_F(IpmTest, ipmSetGetEmulate)

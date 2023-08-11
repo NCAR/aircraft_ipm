@@ -24,12 +24,16 @@ void processArgs(int argc, char *argv[])
     bool r = false;
     bool b = false;
     bool n = false;
-    char c = '9';
+    bool i = false;
+    int a = -1;
+    std::string c = "";
     int nInfo = 0;
+
 
     // Options between colons require an argument
     // Options after second colon do not.
-    while((opt = getopt(argc, argv, ":p:s:m:r:b:n:0:1:2:3:4:5:6:7:ide")) != -1)
+    while((opt = getopt(argc, argv, ":p:s:m:r:b:n:0:1:2:3:4:5:6:7:a:c:ivde"))
+           != -1)
     {
         nopt++;
         switch(opt)
@@ -67,15 +71,42 @@ void processArgs(int argc, char *argv[])
             case '6':
             case '7':
                 ipm.setAddrInfo(opt-'0', optarg);
-                ipm.parse_addrInfo(opt-'0');
+                if (not ipm.parse_addrInfo(opt-'0'))
+                {
+                    std::cout << optarg << " is not a valid address info block"
+                        << std::endl;
+                    exit(1);
+                }
+
                 nInfo++;
+                break;
+            case 'a':
+                if (atoi(optarg) < 0 or atoi(optarg) > 7)  // verify
+                {
+                    std::cout << "Address " << optarg << " is invalid. "
+                        "Please enter a valid address" << std::endl;
+                    exit(1);
+                } else {
+                    ipm.setAddress(optarg);
+                }
+                break;
+            case 'c':
+                if (ipm.verify(optarg))
+                {
+                    ipm.setCmd(optarg);
+                } else {
+                    exit(1);
+                }
                 break;
             case 'i':  // Run in interactive (menu) mode
                 ipm.setInteractive();
+                i = true;
                 break;
-            case 'd': // Run in debug mode
-                ipm.setDebug();
+            case 'v': // Run in verbose mode
+                ipm.setVerbose();
                 break;
+            case 'd': // Run in debug mode (output hex values)
+                ipm.setScaleFlag(0);  // Turn off scaling
             case 'e': // Run in emulator mode
                 ipm.setEmulate();
                 break;
@@ -100,7 +131,8 @@ void processArgs(int argc, char *argv[])
         errflag++;
     }
 
-    if (errflag or not nopt or not p or not m or not r or not b or not n)
+    if (errflag or not p or not b or
+        (not i and (not nopt or not m or not r or not n)))
     {
         std::cout << "Usage:" << std::endl;
         std::cout << "\t-p <port>\t\tport iPM is connected to" << std::endl;
@@ -112,12 +144,19 @@ void processArgs(int argc, char *argv[])
         std::cout << "\t-b <baudrate>\t\tbaud rate" << std::endl;
         std::cout << "\t-n <num_addr>\t\tnumber of active addresses on iPM"
             << std::endl;
-        std::cout << "\t-# <addr,scaleflag,procqueries,port>\n"
+        std::cout << "\t-# <addr,procqueries,port>\n"
             "\t\t\t\tnumber 0 to n-1 followed by info block" << std::endl;
-        std::cout << "\t-i\t\t\trun in interactive mode (optional)"
+        std::cout << "\t-i\t\t\trun in interactive mode (optional)\n"
+            "\t\t\t\t- When in interactive mode only -p and -b are\n"
+            "\t\t\t\t  required\n"
+            "\t\t\t\t- Inclusion of -a and -c will send a single\n"
+            "\t\t\t\t  command and exit." << std::endl;
+        std::cout << "\t-a\t\t\tset address (optional)" << std::endl;
+        std::cout << "\t-c\t\t\tset command (optional)" << std::endl;
+        std::cout << "\t-v\t\t\trun in verbose mode (optional)" << std::endl;
+        std::cout << "\t-d\t\t\trun in debug mode; don't scale vars (optional)"
             << std::endl;
-        std::cout << "\t-d\t\t\trun in debug mode (optional)\n" << std::endl;
-        std::cout << "\t-e\t\t\trun with emulator; longer timeout (optional)\n"
+        std::cout << "\t-e\t\t\trun with emulator; longer timeout (optional)"
             << std::endl;
         exit(1);
     }
@@ -135,15 +174,12 @@ int main(int argc, char * argv[])
     bool status = true;
     if (ipm.Interactive())
     {
-        while (status != 0)
-        {
-            ipm.printMenu();
-            status = ipm.readInput(fd);
-        }
+        ipm.setInteractiveMode(fd);
+        exit(1);
     } else {
         if (ipm.init(fd))
         {
-            if (ipm.Debug())
+            if (ipm.Verbose())
             {
                 std::cout << "Device successfully initialized" << std::endl;
             }

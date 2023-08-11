@@ -107,17 +107,27 @@ class naiipm
         const char* numAddr()      { return _numaddr; }
         void setAddrInfo(int optopt, char addrinfo[])
             { _addrinfo[optopt] = addrinfo; }
-        void parse_addrInfo(int index);
+        bool parse_addrInfo(int index);
 
         void setInteractive() { _interactive = true; }
         bool Interactive()    { return _interactive; };
+        void setAddress(const char address[]) {_address = address; }
+        const char* Address()        { return _address; }
+        void setCmd(const char cmd[]) {_cmd = cmd; }
+        const char* Cmd()        { return _cmd; }
+        void setInteractiveMode(int fd);
 
-        void setDebug() { _debug = true; }
-        bool Debug()    { return _debug; };
+        void setVerbose() { _verbose = true; }
+        bool Verbose()    { return _verbose; };
 
         void setEmulate() { _emulate = true; }
         bool Emulate()    { return _emulate; };
 
+        void setScaleFlag(int flag)
+            { _scaleflag = flag; }
+        bool verify(std::string cmd);
+
+        void singleCommand(int fd, std::string cmd, int addr);
         void printMenu();
         bool readInput(int fd);
         bool init(int fd);
@@ -137,8 +147,8 @@ class naiipm
 
         void get_response(int fd, int len, bool bin);
         void flush(int fd);
-        bool verify(std::string cmd);
         bool send_command(int fd, std::string msg, std::string msgarg = "");
+        void parse_binary(std::string cmd);
 
         const char* _measureRate;
         const char* _recordPeriod;
@@ -157,10 +167,8 @@ class naiipm
             { _addr[index] = atoi(ptr); }
         bool setActiveAddress(int fd, int i);
 
-        int _scaleflag[8];
-        int scaleflag(int index)   { return _scaleflag[index]; }
-        void setScaleFlag(int index, char* ptr)
-            { _scaleflag[index] = atoi(ptr); }
+        int _scaleflag;
+        int scaleflag()   { return _scaleflag; }
 
         int _procqueries[8];
         int procqueries(int index)   { return _procqueries[index]; }
@@ -179,7 +187,9 @@ class naiipm
         const char* _port;
         const char* _numaddr;
         bool _interactive;
-        bool _debug;
+        const char*  _address;
+        const char* _cmd;
+        bool _verbose;
         bool _emulate;
         struct sockaddr_in _servaddr;
         int _sock;
