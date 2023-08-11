@@ -13,6 +13,7 @@
 #include "naiipm.h"
 
 static naiipm ipm;
+const char *acserver = "192.168.84.2";
 
 void processArgs(int argc, char *argv[])
 {
@@ -167,9 +168,7 @@ int main(int argc, char * argv[])
     processArgs(argc, argv);
     int fd = ipm.open_port(ipm.Port());
 
-    // TBD: Hardcode acserver ip address at top of code
-    // TBD: Get port from xml addr info packet.
-    ipm.open_udp("192.168.84.2", 30101);
+    ipm.open_udp(acserver, ipm.addrport(i));
 
     bool status = true;
     if (ipm.Interactive())

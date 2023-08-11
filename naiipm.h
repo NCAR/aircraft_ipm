@@ -108,6 +108,7 @@ class naiipm
         void setAddrInfo(int optopt, char addrinfo[])
             { _addrinfo[optopt] = addrinfo; }
         bool parse_addrInfo(int index);
+        int addrport(int index)   { return _addrport[index]; }
 
         void setInteractive() { _interactive = true; }
         bool Interactive()    { return _interactive; };
@@ -176,7 +177,6 @@ class naiipm
             { _procqueries[index] = atoi(ptr); }
 
         int _addrport[8];
-        int addrport(int index)   { return _addrport[index]; }
         void setAddrPort(int index, char* ptr)
             { _addrport[index] = atoi(ptr); }
 
