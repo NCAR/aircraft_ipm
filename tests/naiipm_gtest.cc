@@ -42,51 +42,117 @@ private:
 };
 
 /********************************************************************
+ ** Test setting interactive mode
+ ********************************************************************
+*/
+TEST_F(IpmTest, ipmSetInteractiveModeAnoC)
+{
+    testing::internal::CaptureStdout();
+    int fd = 1; // Doesn't matter for these tests
+
+    // got -a but not -c
+    const char *addr = "2";
+    ipm.setAddress(addr);
+    ipm.setInteractiveMode(fd);
+    EXPECT_EQ(testing::internal::GetCapturedStdout(),
+        "Command  is invalid. Please enter a valid command\n");
+}
+
+TEST_F(IpmTest, ipmSetInteractiveModeCnoA)
+{
+    testing::internal::CaptureStdout();
+    int fd = 1; // Doesn't matter for these tests
+
+    // got -c but not -a
+    ipm.setCmd("RECORD?");
+    ipm.setInteractiveMode(fd);
+    EXPECT_EQ(testing::internal::GetCapturedStdout(),
+        "Please specify a valid address\n");
+}
+
+TEST_F(IpmTest, ipmVerify)
+{
+    testing::internal::CaptureStdout();
+
+    // Invalid iPM query
+    ipm.setCmd("REC");
+    ipm.verify(ipm.Cmd());
+    EXPECT_EQ(testing::internal::GetCapturedStdout(),
+        "Command REC is invalid. Please enter a valid command\n");
+}
+
+/********************************************************************
  ** Test parsing response strings
  ********************************************************************
 */
 TEST_F(IpmTest, ipmParseData)
 {
+
     ipm.open_udp("192.168.84.2", 30101);
 
     std::string str;
     char addrinfo[12];
 
+    // do not scal
+    // do not scalee
     strcpy(addrinfo, "0,5,30101");
     ipm.setScaleFlag(0);  // do not scale
     ipm.setAddrInfo(0, addrinfo);
     ipm.parse_addrInfo(0);
 
+    testing::internal::CaptureStdout();
     ipm.parseData("MEASURE?", 0);
     EXPECT_EQ(measure.FREQ,600);
     str = ipm.buffer;
     EXPECT_EQ(str,"MEASURE,0258,0205,048b,048b,0000,0604,05fc,0000,001c,001c,0009,0dc9,06c8,0707,1b,1b,01,01\r\n");
+    EXPECT_EQ(testing::internal::GetCapturedStdout(),
+        "sending UDP string MEASURE,0258,0205,048b,048b,0000,0604,05fc,0000,001c,001c,0009,0dc9,06c8,0707,1b,1b,01,01\r\n");
+
+    testing::internal::CaptureStdout();
     ipm.parseData("STATUS?", 0);
     EXPECT_EQ(measure.FREQ,600);
     str = ipm.buffer;
     EXPECT_EQ(str,"STATUS,02,01,0000,0000,0000\r\n");
+    EXPECT_EQ(testing::internal::GetCapturedStdout(),
+        "sending UDP string STATUS,02,01,0000,0000,0000\r\n");
+
+    testing::internal::CaptureStdout();
     ipm.parseData("RECORD?", 0);
     EXPECT_EQ(measure.FREQ,600);
     str = ipm.buffer;
     EXPECT_EQ(str,"RECORD,00,02,00000063,0469448b,00000000,00000000,00d1,049b,00d1,049b,0000,0000,0245,0258,0000,0071,001a,0055,0000,0015,1a,71,1a,71,01,01,0604,065a,0604,0653,0000,0018,087c1b13\r\n");
+    EXPECT_EQ(testing::internal::GetCapturedStdout(),
+        "sending UDP string RECORD,00,02,00000063,0469448b,00000000,00000000,00d1,049b,00d1,049b,0000,0000,0245,0258,0000,0071,001a,0055,0000,0015,1a,71,1a,71,01,01,0604,065a,0604,0653,0000,0018,087c1b13\r\n");
 
+    // scale
     strcpy(addrinfo, "0,5,30101");
     ipm.setScaleFlag(1);  // scale
     ipm.setAddrInfo(0, addrinfo);
     ipm.parse_addrInfo(0);
 
+    testing::internal::CaptureStdout();
     ipm.parseData("MEASURE?", 0);
     EXPECT_EQ(measure.FREQ,600);
     str = ipm.buffer;
     EXPECT_EQ(str,"MEASURE,60.00,51.70,116.30,116.30,0.00,154.00,153.20,0.00,0.0280,0.0280,0.0090,352.90,173.60,179.90,2.70,2.70,0.10,1\r\n");
+    EXPECT_EQ(testing::internal::GetCapturedStdout(),
+        "sending UDP string MEASURE,60.00,51.70,116.30,116.30,0.00,154.00,153.20,0.00,0.0280,0.0280,0.0090,352.90,173.60,179.90,2.70,2.70,0.10,1\r\n");
+
+    testing::internal::CaptureStdout();
     ipm.parseData("STATUS?", 0);
     EXPECT_EQ(measure.FREQ,600);
     str = ipm.buffer;
     EXPECT_EQ(str,"STATUS,2,1,0,0,0\r\n");
+    EXPECT_EQ(testing::internal::GetCapturedStdout(),
+        "sending UDP string STATUS,2,1,0,0,0\r\n");
+
+    testing::internal::CaptureStdout();
     ipm.parseData("RECORD?", 0);
     EXPECT_EQ(measure.FREQ,600);
     str = ipm.buffer;
     EXPECT_EQ(str,"RECORD,0,2,99,74007691,0,0,20.90,117.90,20.90,117.90,0.00,0.00,58.10,60.00,0.0000,0.1130,0.0260,0.0850,0.0000,0.0210,2.60,11.30,2.60,11.30,0.10,0.10,154.00,162.60,154.00,161.90,0.00,2.40,142351123\r\n");
+    EXPECT_EQ(testing::internal::GetCapturedStdout(),
+        "sending UDP string RECORD,0,2,99,74007691,0,0,20.90,117.90,20.90,117.90,0.00,0.00,58.10,60.00,0.0000,0.1130,0.0260,0.0850,0.0000,0.0210,2.60,11.30,2.60,11.30,0.10,0.10,154.00,162.60,154.00,161.90,0.00,2.40,142351123\r\n");
 
     ipm.close_udp();
 }
