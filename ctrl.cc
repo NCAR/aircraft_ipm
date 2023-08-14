@@ -132,7 +132,7 @@ void processArgs(int argc, char *argv[])
         errflag++;
     }
 
-    if (errflag or not p or not b or
+    if (errflag or not p or
         (not i and (not nopt or not m or not r or not n)))
     {
         std::cout << "Usage:" << std::endl;

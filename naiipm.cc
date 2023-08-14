@@ -40,7 +40,15 @@ naiipm::naiipm():_interactive(false)
     _ipm_data["RECORD?"] = _recorddata;   // Device Statistics
 
     _recordCount = 0;
+
+    // Set defaults
     setScaleFlag(1);  // turn on scaling by default
+    const char *baud = "115200";
+    setBaud(baud);
+    const char *device = "/dev/ttyS0";
+    setPort(device);
+    const char *naddr = "1";  // one address by default
+    setNumAddr(naddr);
     const char *undefAddr = "-1";
     setAddress(undefAddr);
     setCmd("");
@@ -136,13 +144,7 @@ int naiipm::open_port(const char *port)
             exit(2);
         }
 
-        // set bit input and output baud rate
-        if (atoi(_baudRate) != 115200)
-        {
-            // TBD: default to 115200
-            exit(1);
-        }
-        if (cfsetspeed(&port_settings, B115200) == -1)
+        if (cfsetspeed(&port_settings, get_baud()) == -1)
         {
             std::cout << "Failed to set baud rate to 115200" << std::endl;
         }
@@ -165,6 +167,19 @@ int naiipm::open_port(const char *port)
 
     return(fd);
 } //open_port
+
+// Convert baud rate to value required by cfsetspeed command
+uint_fast32_t naiipm::get_baud()
+{
+    switch (atoi(_baudRate)) {
+        case 115200:
+            return B115200;
+        default:
+            std::cout << "Unknown baud rate " << _baudRate << "If rate is valid"
+                " please update get_baud() function" << std::endl;
+            exit(1);
+    }
+}
 
 void naiipm::close_port(int fd)
 {
@@ -190,8 +205,6 @@ void naiipm::open_udp(const char *ip)
         _servaddr[i].sin_family = AF_INET;
         _servaddr[i].sin_port = htons(addrport(i));
         _servaddr[i].sin_addr.s_addr = inet_addr(ip);
-
-        std::cout << i << " : " <<  _sock[i] << std::endl;
     }
 
 }
@@ -453,13 +466,25 @@ void naiipm::get_response(int fd, int len, bool bin)
 
     buffer[n+1] = '\0'; // terminate the string
 
-    if (not bin && n+1 != len)
+    if (not bin && (n+1 != len))
     {
-       if (len != 0) // Handle edge case - a hack, clean up later
-       {
+       if (len != 0)  // For ADR command, expect len zero response, and when
+       {              // get no response n+1 = 1, so will fail above check but
+		      // ignore here. I am sure there is a better logic construct
+		      // to catch this, but I am not coming up with it right now.
+           if (n == 0) // Did not receive a response at all when expected
+           {
+               std::cout << "Didn't receive a response from the iPM."
+		   << std::endl;
+	       std::cout << "Are you sure the selected address is active?"
+		   << std::endl;
+	           exit(1);
+           } else {
            // n and len should be the same for ascii data
-           std::cout << "Didn't receive all expected chars: received " <<
-               n+1 << ", expected " << len << std::endl;
+               std::cout << "Didn't receive all expected chars: received " <<
+                   n+1 << ", expected " << len << " : " << buffer << std::endl;
+	       exit(1);
+           }
        }
     }
 }
@@ -585,7 +610,9 @@ void naiipm::setInteractiveMode(int fd)
     // got -c but not -a
     if (atoi(Address()) == -1 and strcmp(Cmd(),"") != 0)
     {
-        std::cout << "Please specify a valid address" << std::endl;
+        std::cout << "Setting default address of 0" << std::endl;
+	setAddress("0");
+        singleCommand(fd, Cmd(), atoi(Address()));
         return;
     }
 
