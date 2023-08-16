@@ -448,6 +448,7 @@ void naiipm::get_response(int fd, int len, bool bin)
         } else if (ret != -1)  // read did not return timeout
         {
             std::cout << "unknown response " << c << std::endl;
+            return;
         } else if (ret == -1)  // Resource temporarily unavailable
         {
             std::cout << "Read from iPM returned error " << strerror(errno)
@@ -507,9 +508,11 @@ bool naiipm::send_command(int fd, std::string msg, std::string msgarg)
     {
         std::cout << "Got message " << msg << std::endl;
     }
+
     // Find expected response for this message
     auto response = _ipm_commands.find(msg);
     std::string expected_response = response->second;
+
     if (Verbose())
     {
         std::cout << "Expect response " << expected_response << std::endl;
@@ -569,7 +572,7 @@ bool naiipm::send_command(int fd, std::string msg, std::string msgarg)
         if(buffer != expected_response)
         {
             std::cout << "Device command " << msg << " did not return "
-                << "expected response " << expected_response <<  std::endl;
+                << "expected response " << expected_response << std::endl;
             return false;  // command failed
         }
     }
@@ -597,7 +600,7 @@ bool naiipm::send_command(int fd, std::string msg, std::string msgarg)
 // There are two options: either give an address and ipm query on the command
 // line, receive a result and exit, or launch an interactive menu from which
 // to select queries.
-void naiipm::setInteractiveMode(int fd)
+bool naiipm::setInteractiveMode(int fd)
 {
     // If giving address and query on command line, ensure both exist
     // and are valid;
@@ -605,32 +608,32 @@ void naiipm::setInteractiveMode(int fd)
     if (atoi(Address()) != -1 and strcmp(Cmd(),"") == 0)
     {
         verify(Cmd());
-        return;
+        return false;
     }
     // got -c but not -a
     if (atoi(Address()) == -1 and strcmp(Cmd(),"") != 0)
     {
         std::cout << "Setting default address of 0" << std::endl;
-	setAddress("0");
-        singleCommand(fd, Cmd(), atoi(Address()));
-        return;
+        setAddress("0");
+        return true;
     }
 
     // iPM command (-c) and address (-a) both given on command line
     // so send query to iPM
     if (atoi(Address()) != -1 and strcmp(Cmd(),"") != 0)
     {
-        singleCommand(fd, Cmd(), atoi(Address()));
-        return;
+        return true;
     }
 
     // didn't get -a or -c, so print menu and wait for user input
     bool status = true;
-    while (status != 0)
+    while (status == true)
     {
         printMenu();
         status = readInput(fd);
     }
+
+    return status;  // will be false if user requested to quit
 }
 
 // Flush serial port

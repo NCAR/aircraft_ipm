@@ -173,7 +173,13 @@ int main(int argc, char * argv[])
     bool status = true;
     if (ipm.Interactive())
     {
-        ipm.setInteractiveMode(fd);
+        bool mode  = ipm.setInteractiveMode(fd);
+        // if  mode is True, successfully configured a command line query,
+        // so request that now. If false, just exit.
+        if (mode == true)
+        {
+            ipm.singleCommand(fd, ipm.Cmd(), atoi(ipm.Address()));
+        }
         exit(1);
     } else {
         if (ipm.init(fd))

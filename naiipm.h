@@ -115,7 +115,7 @@ class naiipm
         const char* Address()        { return _address; }
         void setCmd(const char cmd[]) {_cmd = cmd; }
         const char* Cmd()        { return _cmd; }
-        void setInteractiveMode(int fd);
+        bool setInteractiveMode(int fd);
 
         void setVerbose() { _verbose = true; }
         bool Verbose()    { return _verbose; };
