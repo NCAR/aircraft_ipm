@@ -132,17 +132,19 @@ void processArgs(int argc, char *argv[])
         errflag++;
     }
 
-    if (errflag or not p or
+    if (errflag or  // not p or
         (not i and (not nopt or not m or not r or not n)))
     {
         std::cout << "Usage:" << std::endl;
-        std::cout << "\t-p <port>\t\tport iPM is connected to" << std::endl;
-        std::cout << "\t-s <port>\t\tport to send status msgs to" << std::endl; // ??? - look at specs!
+        std::cout << "\t-p <port>\t\tiPM connection port (Default:/dev/ttyS0)"
+            << std::endl;
+        std::cout << "\t-s <port>\t\tstatus message port" << std::endl; // ??? - look at specs!
         std::cout << "\t-m <measurerate>\tSTATUS & MEASURE collection rate "
             << " (hz)" << std::endl;
         std::cout << "\t-r <recordperiod>\tperiod of RECORD queries (minutes)"
             << std::endl;
-        std::cout << "\t-b <baudrate>\t\tbaud rate" << std::endl;
+        std::cout << "\t-b <baudrate>\t\tbaud rate (Default:115200)"
+            << std::endl;
         std::cout << "\t-n <num_addr>\t\tnumber of active addresses on iPM"
             << std::endl;
         std::cout << "\t-# <addr,procqueries,port>\n"
