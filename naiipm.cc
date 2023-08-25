@@ -117,8 +117,11 @@ bool naiipm::init(int fd)
 
     if (_numaddr == 0)
     {
+        // if setting all active addresses fails on init, wait 5s and close
+        // program so nidas can restart it.
         std::cout << "There are no active addresses available to select"
             << std::endl;
+        usleep(5000000);  // 5 seconds
         return false;
     }
 
