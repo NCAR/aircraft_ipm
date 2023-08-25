@@ -103,8 +103,8 @@ class naiipm
         void setRate(const char rate[])   { _measureRate = rate; }
         void setPeriod(const char period[])   { _recordPeriod = period; }
         void setBaud(const char baud[])   { _baudRate = baud; }
-        void setNumAddr(const char numaddr[])   { _numaddr = numaddr; }
-        const char* numAddr()      { return _numaddr; }
+        void setNumAddr(const char numaddr[])   { _numaddr = atoi(numaddr); }
+        int numAddr()      { return _numaddr; }
         void setAddrInfo(int optopt, char addrinfo[])
             { _addrinfo[optopt] = addrinfo; }
         bool parse_addrInfo(int index);
@@ -167,6 +167,7 @@ class naiipm
         void setAddr(int index, char* ptr)
             { _addr[index] = atoi(ptr); }
         bool setActiveAddress(int fd, int addr);
+        void rmAddr(int i);
 
         int _scaleflag;
         int scaleflag()   { return _scaleflag; }
@@ -186,7 +187,7 @@ class naiipm
             { return _ipm_data.find(msg)->second; }
 
         const char* _port;
-        const char* _numaddr;
+        int _numaddr;
         bool _interactive;
         const char*  _address;
         const char* _cmd;

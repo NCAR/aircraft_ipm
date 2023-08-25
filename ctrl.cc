@@ -125,7 +125,7 @@ void processArgs(int argc, char *argv[])
 
     // Confirm that the number of addrinfo command line entries equals the
     // the numaddr number.
-    if (nInfo != 0 and atoi(ipm.numAddr()) != nInfo)
+    if (nInfo != 0 and ipm.numAddr() != nInfo)
     {
         std::cout << "-n option must match number of addresses given on " <<
             "command line" << std::endl;

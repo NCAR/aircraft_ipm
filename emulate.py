@@ -18,6 +18,8 @@ import shutil
 import tempfile
 import subprocess as sp
 
+import re
+
 import serial
 from config import sequence
 
@@ -110,6 +112,7 @@ class IpmEmulator():
 
     def listen(self):
         """ Loop and wait for commands to arrive """
+        adr = -1
         while True:
             rdata = self.sport.read(128)
             msg = rdata.decode('UTF-8').rstrip()
@@ -120,6 +123,20 @@ class IpmEmulator():
             # On receipt of 'x', quit cycling and exit
             if msg == 'x':
                 return
+
+            # This chunk of code tests removing address 2 if it is
+            # requested but not active. Uncomment to test.
+            #m = re.search('ADR', msg)
+            #if (m):
+            #    adr = msg[4]
+            #    print('Set address to ' + str(adr))
+
+            #if (msg == "OFF" and adr == "2"):
+            #    print('Sending null response ' +
+            #          str("".encode('iso-8859-1')))
+            #    self.sport.write("".encode('iso-8859-1'))
+            #    continue
+            # End tests removing address 2
 
             for cmd in sequence:
                 fullcmd = cmd.msg  # Add line feed to expected string

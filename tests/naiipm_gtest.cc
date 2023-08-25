@@ -83,6 +83,60 @@ TEST_F(IpmTest, ipmVerify)
 }
 
 /********************************************************************
+ ** Test removing inactive address
+ ********************************************************************
+*/
+TEST_F(IpmTest, ipmRmAddr)
+{
+    testing::internal::CaptureStdout();
+    char addrinfo[12];
+
+    ipm.setNumAddr("4");
+    strcpy(addrinfo, "0,1,30101");
+    ipm.setAddrInfo(0, addrinfo);
+    ipm.parse_addrInfo(0);
+    strcpy(addrinfo, "2,5,30102");
+    ipm.setAddrInfo(1, addrinfo);
+    ipm.parse_addrInfo(1);
+    strcpy(addrinfo, "5,7,30103");
+    ipm.setAddrInfo(2, addrinfo);
+    ipm.parse_addrInfo(2);
+    strcpy(addrinfo, "6,7,30104");
+    ipm.setAddrInfo(3, addrinfo);
+    ipm.parse_addrInfo(3);
+
+    EXPECT_EQ(ipm.numAddr(), 4);
+    EXPECT_EQ(ipm.addr(0), 0);
+    EXPECT_EQ(ipm.procqueries(0), 1);
+    EXPECT_EQ(ipm.addrport(0), 30101);
+    EXPECT_EQ(ipm.addr(1), 2);
+    EXPECT_EQ(ipm.procqueries(1), 5);
+    EXPECT_EQ(ipm.addrport(1), 30102);
+    EXPECT_EQ(ipm.addr(2), 5);
+    EXPECT_EQ(ipm.procqueries(2), 7);
+    EXPECT_EQ(ipm.addrport(2), 30103);
+    EXPECT_EQ(ipm.addr(3), 6);
+    EXPECT_EQ(ipm.procqueries(3), 7);
+    EXPECT_EQ(ipm.addrport(3), 30104);
+
+    ipm.rmAddr(1);  // remove address at index 1
+    EXPECT_EQ(ipm.numAddr(), 3);
+    EXPECT_EQ(ipm.addr(0), 0);
+    EXPECT_EQ(ipm.procqueries(0), 1);
+    EXPECT_EQ(ipm.addrport(0), 30101);
+    EXPECT_EQ(ipm.addr(1), 5);
+    EXPECT_EQ(ipm.procqueries(1), 7);
+    EXPECT_EQ(ipm.addrport(1), 30103);
+    EXPECT_EQ(ipm.addr(2), 6);
+    EXPECT_EQ(ipm.procqueries(2), 7);
+    EXPECT_EQ(ipm.addrport(2), 30104);
+
+    EXPECT_EQ(testing::internal::GetCapturedStdout(),
+        "Removing address 2 from active address list\n");
+
+}
+
+/********************************************************************
  ** Test parsing response strings
  ********************************************************************
 */
@@ -94,8 +148,7 @@ TEST_F(IpmTest, ipmParseData)
     std::string str;
     char addrinfo[12];
 
-    // do not scal
-    // do not scalee
+    // do not scale
     strcpy(addrinfo, "0,5,30101");
     ipm.setScaleFlag(0);  // do not scale
     ipm.setAddrInfo(0, addrinfo);
@@ -362,7 +415,7 @@ TEST_F(IpmTest, ipmSetGetNumAddr)
 {
     // number of active address on iPM
     ipm.setNumAddr("1");
-    EXPECT_EQ(atoi(ipm.numAddr()), 1);
+    EXPECT_EQ(ipm.numAddr(), 1);
 }
 
 TEST_F(IpmTest, ipmSetGetAddrInfo)
