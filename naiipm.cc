@@ -69,20 +69,30 @@ bool naiipm::init(int fd)
     flush(fd);
 
     // Verify device existence at all addresses
-    std::cout << "This ipm has " << numAddr() << " active address(es)"
+    std::cout << "This ipm should have " << numAddr() << " active address(es)"
         << std::endl;
-    for (int i=0; i < atoi(numAddr()); i++)
+    for (int i=0; i < numAddr(); i++)
     {
         std::string msg;
         std::cout << "Info for address " << i << " is " << addr(i) << ","
             << procqueries(i) << "," << addrport(i)
             << std::endl;
         bool status = setActiveAddress(fd, addr(i));
-        // TBD: If setActiveAddress command failed (corruption) during init?
+        if(not status)
+        {
+            std::cout << "Unable to set active address to " << addr(i) <<
+                ". Skipping adress " << addr(i) << "for this iteration" <<
+                std::endl;
+        }
 
         // Turn Device OFF, wait > 100ms then turn ON to reset state
         msg = "OFF";
-        if(not send_command(fd, msg)) { return false; }
+        if(not send_command(fd, msg)) {
+            // OFF query failed, so remove address from active address list
+            rmAddr(i);
+            i--; // back up to where next addrinfo is now stored
+            continue;
+        }
 
         unsigned int microseconds = 110000;
         usleep(microseconds);  // Wait > 100ms
@@ -92,13 +102,7 @@ bool naiipm::init(int fd)
 
         // Query Serial Number
         msg = "SERNO?";
-        if(not send_command(fd, msg))
-        {
-            return false;
-            // TBD: If SERNO query fails, remove address from list, but
-            // continue with other addresses. decrease numAddr by 1 and
-            // remove addr(i) from array. Log error.
-        }
+        if(not send_command(fd, msg)) { return false; }
         // Query Firmware Version
         msg = "VER?";
         if(not send_command(fd, msg)) { return false; }
@@ -111,7 +115,32 @@ bool naiipm::init(int fd)
         status = parseData(msg, i);
     }
 
+    if (_numaddr == 0)
+    {
+        // if setting all active addresses fails on init, wait 5s and close
+        // program so nidas can restart it.
+        std::cout << "There are no active addresses available to select"
+            << std::endl;
+        usleep(5000000);  // 5 seconds
+        return false;
+    }
+
     return true;
+}
+
+// Remove address from active address list
+// i is index of addrinfo string, not actual address to be removed
+void naiipm::rmAddr(int i)
+{
+    std::cout << "Removing address " << addr(i) << " from active address list"
+        << std::endl;
+    for (int j=i; j<_numaddr; j++) {
+        _addrinfo[j] = _addrinfo[j+1];
+        _addr[j] = _addr[j+1];
+        _procqueries[j] = _procqueries[j+1];
+        _addrport[j] = _addrport[j+1];
+    }
+    _numaddr =  _numaddr - 1;
 }
 
 // Establish connection to iPM
@@ -190,7 +219,7 @@ void naiipm::close_port(int fd)
 // Each address needs it's own socket so it can send over it's own port.
 void naiipm::open_udp(const char *ip)
 {
-    for (int i=0; i<atoi(numAddr()); i++)
+    for (int i=0; i<numAddr(); i++)
     {
         //  AF_INET for IPv4/ AF_INET6 for IPv6
         //  SOCK_STREAM for TCP / SOCK_DGRAM for UDP
@@ -227,7 +256,7 @@ void naiipm::close_udp(int adr)
 {
     if (adr == -1)
     {
-        for (int i=0; i<atoi(numAddr()); i++)
+        for (int i=0; i<numAddr(); i++)
         {
             close(_sock[i]);
         }
@@ -304,7 +333,7 @@ bool naiipm::loop(int fd)
 
     _recordCount++;
 
-    for (int i=0; i < atoi(numAddr()); i++)
+    for (int i=0; i < numAddr(); i++)
     {
 
         // ‘procqueries’ is an integer representation of 3-bit Boolean
@@ -479,7 +508,6 @@ void naiipm::get_response(int fd, int len, bool bin)
 		   << std::endl;
 	       std::cout << "Are you sure the selected address is active?"
 		   << std::endl;
-	           exit(1);
            } else {
            // n and len should be the same for ascii data
                std::cout << "Didn't receive all expected chars: received " <<

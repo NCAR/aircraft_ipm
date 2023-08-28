@@ -11,6 +11,8 @@
 */
 
 #include "naiipm.h"
+#include <fstream>
+#include <cstdio>
 
 static naiipm ipm;
 const char *acserver = "192.168.84.2";
@@ -32,7 +34,7 @@ void processArgs(int argc, char *argv[])
 
 
     // Options between colons require an argument
-    // Options after second colon do not.
+    // Options after last colon do not.
     while((opt = getopt(argc, argv, ":p:s:m:r:b:n:0:1:2:3:4:5:6:7:a:c:ivde"))
            != -1)
     {
@@ -125,7 +127,7 @@ void processArgs(int argc, char *argv[])
 
     // Confirm that the number of addrinfo command line entries equals the
     // the numaddr number.
-    if (nInfo != 0 and atoi(ipm.numAddr()) != nInfo)
+    if (nInfo != 0 and ipm.numAddr() != nInfo)
     {
         std::cout << "-n option must match number of addresses given on " <<
             "command line" << std::endl;
@@ -167,6 +169,26 @@ void processArgs(int argc, char *argv[])
 
 int main(int argc, char * argv[])
 {
+
+    // set up logging to a timestamped file
+    char time_buf[100];
+    time_t now = std::time({});;
+    gmtime(&now);
+    strftime(time_buf, 100, "%Y%m%d_%H%M%S", gmtime(&now));
+
+    std::string filename = "ipm_" + (std::string)time_buf + ".log";
+    std::ofstream logfile(filename);
+    auto oldbuf = std::cout.rdbuf( logfile.rdbuf());
+
+    // If in interactive mode, don't log to a file
+    for (int i=0; i< argc; ++i) {
+        if (strcmp(argv[i],"-i") == 0) {
+            // go back to writing to stdout
+            std::cout.rdbuf(oldbuf);
+            std::remove(filename.c_str());  // remove logfile
+        }
+    }
+
     processArgs(argc, argv);
     int fd = ipm.open_port(ipm.Port());
 
