@@ -211,6 +211,9 @@ class naiipm
         float _deci;   // 0.1
         float _milli;  // 0.001
 
+        // Bad data counter
+        int _badData;
+        void trackBadData();
 
         // CRC validation
         uint32_t _crcTable[256];

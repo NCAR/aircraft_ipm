@@ -40,6 +40,7 @@ naiipm::naiipm():_interactive(false)
     _ipm_data["RECORD?"] = _recorddata;   // Device Statistics
 
     _recordCount = 0;
+    _badData = 0;
 
     // Set defaults
     setScaleFlag(1);  // turn on scaling by default
@@ -419,6 +420,7 @@ void naiipm::get_response(int fd, int len, bool bin)
     {
         std::cout << "Expected response length " << len << std::endl;
     }
+
     while (true)
     {
         // If iPM never returns expected number of bytes, timeout
@@ -447,8 +449,10 @@ void naiipm::get_response(int fd, int len, bool bin)
         }
         else if (rv == 0)
         {
-            if (Verbose())
+            if (len != 0)  // expected a response but didn't get one
             {
+                // timeout
+                trackBadData();
                 std::cout << "timeout" << std::endl; /* a timeout occured */
             }
             break;
@@ -500,24 +504,41 @@ void naiipm::get_response(int fd, int len, bool bin)
     {
        if (len != 0)  // For ADR command, expect len zero response, and when
        {              // get no response n+1 = 1, so will fail above check but
-		      // ignore here. I am sure there is a better logic construct
-		      // to catch this, but I am not coming up with it right now.
+                    // ignore here. I am sure there is a better logic construct
+                    // to catch this, but I am not coming up with it right now.
            if (n == 0) // Did not receive a response at all when expected
            {
                std::cout << "Didn't receive a response from the iPM."
-		   << std::endl;
-	       std::cout << "Are you sure the selected address is active?"
-		   << std::endl;
+                   << std::endl;
+               std::cout << "Are you sure the selected address is active?"
+                   << std::endl;
            } else {
-           // n and len should be the same for ascii data
+               // n and len should be the same for ascii data
                std::cout << "Didn't receive all expected chars: received " <<
                    n+1 << ", expected " << len << " : " << buffer << std::endl;
-	       exit(1);
+               // data size error; increment bad data counter
+               trackBadData();
            }
        }
     }
 }
 
+// If bad data is received (e.g. header error, size error, CRC error, query
+// timeout) then the counter is incremented. If counter reaches 10 errors,
+// application shall wait 5 seconds and then reinit. Log that we shut down for
+// data error reasons.
+void naiipm::trackBadData()
+{
+    _badData++;
+    if (_badData == 10)
+    {
+        std::cout << "Found 10 data errors - shutting down and restarting"
+            << std::endl;
+        // Upon exit, nidas will wait for timeout given in XML (should be 5s)
+        // and then will attempt to restart program.
+        exit(1);
+    }
+}
 // send a single command entered on the command line
 void naiipm::singleCommand(int fd, std::string cmd, int addr)
 {
@@ -599,6 +620,8 @@ bool naiipm::send_command(int fd, std::string msg, std::string msgarg)
 
         if(buffer != expected_response)
         {
+            // header error so increment bad data counter
+            trackBadData();
             std::cout << "Device command " << msg << " did not return "
                 << "expected response " << expected_response << std::endl;
             return false;  // command failed
@@ -803,6 +826,9 @@ bool naiipm::parseData(std::string cmd, int adr)
         //    << std::endl;
         //std::cout << std::hex << record.CRC << std::dec << " : CRC from iPM"
         //    << std::endl
+        // If CRC from the data and calculatedCRC don't match, increment bad
+        // data counter:
+        // trackBadData();
 
         if (Verbose())
         {
@@ -879,9 +905,9 @@ bool naiipm::parseData(std::string cmd, int adr)
     if (cmd == "STATUS?") {
         parseStatus(cp, sp);
         if (scaleflag() >= 1) {
-            snprintf(buffer, 255, "STATUS,%u,%u,%u,%u,%u\r\n", status.OPSTATE,
-                status.POWEROK, status.TRIPFLAGS, status.CAUTIONFLAGS,
-                status.BITSTAT);
+            snprintf(buffer, 255, "STATUS,%u,%u,%u,%u,%u,%d\r\n",
+                status.OPSTATE, status.POWEROK, status.TRIPFLAGS,
+                status.CAUTIONFLAGS, status.BITSTAT, _badData);
         } else {
             snprintf(buffer, 255, "STATUS,%02x,%02x,%04x,%04x,%04x\r\n",
                 status.OPSTATE, status.POWEROK, status.TRIPFLAGS,

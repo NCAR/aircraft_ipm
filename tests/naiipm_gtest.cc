@@ -196,9 +196,9 @@ TEST_F(IpmTest, ipmParseData)
     ipm.parseData("STATUS?", 0);
     EXPECT_EQ(measure.FREQ,600);
     str = ipm.buffer;
-    EXPECT_EQ(str,"STATUS,2,1,0,0,0\r\n");
+    EXPECT_EQ(str,"STATUS,2,1,0,0,0,0\r\n");
     EXPECT_EQ(testing::internal::GetCapturedStdout(),
-        "sending to port 30101 UDP string STATUS,2,1,0,0,0\r\n");
+        "sending to port 30101 UDP string STATUS,2,1,0,0,0,0\r\n");
 
     testing::internal::CaptureStdout();
     ipm.parseData("RECORD?", 0);
