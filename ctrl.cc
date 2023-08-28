@@ -22,7 +22,6 @@ void processArgs(int argc, char *argv[])
     int opt;
     int errflag = 0, nopt = 0;
     bool p = false;
-    bool s = false;
     bool m = false;
     bool r = false;
     bool b = false;
@@ -35,7 +34,7 @@ void processArgs(int argc, char *argv[])
 
     // Options between colons require an argument
     // Options after last colon do not.
-    while((opt = getopt(argc, argv, ":p:s:m:r:b:n:0:1:2:3:4:5:6:7:a:c:ivde"))
+    while((opt = getopt(argc, argv, ":p:m:r:b:n:0:1:2:3:4:5:6:7:a:c:ivde"))
            != -1)
     {
         nopt++;
@@ -44,10 +43,6 @@ void processArgs(int argc, char *argv[])
             case 'p':  // Port the iPM is connected to
                 p = true;
                 ipm.setPort(optarg);
-                break;
-            case 's':  // Port to send additional status messages
-                s = true;
-                // TBD: not yet implemented
                 break;
             case 'm':  // STATUS & MEASURE collection rate (hz)
                 m = true;
@@ -140,7 +135,6 @@ void processArgs(int argc, char *argv[])
         std::cout << "Usage:" << std::endl;
         std::cout << "\t-p <port>\t\tiPM connection port (Default:/dev/ttyS0)"
             << std::endl;
-        std::cout << "\t-s <port>\t\tstatus message port" << std::endl; // ??? - look at specs!
         std::cout << "\t-m <measurerate>\tSTATUS & MEASURE collection rate "
             << " (hz)" << std::endl;
         std::cout << "\t-r <recordperiod>\tperiod of RECORD queries (minutes)"
@@ -173,7 +167,6 @@ int main(int argc, char * argv[])
     // set up logging to a timestamped file
     char time_buf[100];
     time_t now = std::time({});;
-    gmtime(&now);
     strftime(time_buf, 100, "%Y%m%d_%H%M%S", gmtime(&now));
 
     std::string filename = "ipm_" + (std::string)time_buf + ".log";
