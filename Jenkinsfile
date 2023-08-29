@@ -17,7 +17,7 @@ pipeline {
   }
   stages {
     stage('Shell script 1') {
-      agent (
+      agent {
         node {
           label 'CentOS8'
         }
