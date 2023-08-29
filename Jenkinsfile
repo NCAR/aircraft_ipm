@@ -14,8 +14,6 @@ pipeline {
         sh 'scons'
       }
     }
-  }
-  stages {
     stage('Shell script 1') {
       agent {
         node {
