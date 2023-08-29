@@ -4,15 +4,22 @@ pipeline {
         label 'UbuntuBionic32'
         } 
   }
+  triggers {
+    pollSCM('H/5 * * * *')
+  }
   stages {
     stage('Checkout Scm') {
       steps {
-        git 'eolJenkins:NCAR/aircraft_ipm.git'
+        git(credentialsId: '78b46507-ad3f-4a59-93df-11a69e10cd53', url: 'eolJenkins:NCAR/aircraft_ipm.git')
       }
     }
-    stage('Build') {
+    stage('Shell script 0') {
       steps {
         sh 'scons'
+      }
+    }
+    stage('Shell script 1') {
+      steps {
         sh 'scons tests'
         sh 'tests/g_test'
       }
