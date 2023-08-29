@@ -10,7 +10,7 @@ pipeline {
   stages {
     stage('Checkout Scm') {
       steps {
-        git 'eolJenkins:NCAR/aircraft_ipm.git'
+        git(credentialsId: '78b46507-ad3f-4a59-93df-11a69e10cd53', url: 'eolJenkins:NCAR/aircraft_ipm.git')
       }
     }
     stage('Shell script 0') {
