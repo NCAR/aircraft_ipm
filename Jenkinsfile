@@ -1,7 +1,7 @@
 pipeline {
   agent {
      node { 
-        label 'UbuntuBionic32'
+        label 'UbuntuBionic32|CentOS8'
         } 
   }
   triggers {
