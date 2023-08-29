@@ -8,6 +8,11 @@ pipeline {
     pollSCM('H/5 * * * *')
   }
   stages {
+    stage('Checkout Scm') {
+      steps {
+        git 'eolJenkins:NCAR/aircraft_ipm.git'
+      }
+    }
     stage('Shell script 0') {
       steps {
         sh 'scons'
