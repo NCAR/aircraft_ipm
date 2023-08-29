@@ -1,7 +1,7 @@
 pipeline {
   agent {
      node { 
-        label 'UbuntuBionics32'
+        label 'CentOS7'
         } 
   }
   stages {
