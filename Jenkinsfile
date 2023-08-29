@@ -18,12 +18,6 @@ pipeline {
         sh 'scons'
       }
     }
-//    stage('Shell script 1') {
-//      steps {
-//        sh 'scons tests'
-//        sh 'tests/g_test'
-//      }
-//    }
   }
   post {
     failure {
