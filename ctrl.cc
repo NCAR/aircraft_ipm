@@ -13,6 +13,7 @@
 #include "naiipm.h"
 #include <fstream>
 #include <cstdio>
+#include <string.h>
 
 static naiipm ipm;
 const char *acserver = "192.168.84.2";
@@ -166,7 +167,7 @@ int main(int argc, char * argv[])
 
     // set up logging to a timestamped file
     char time_buf[100];
-    time_t now = std::time({});;
+    time_t now = time({});;
     strftime(time_buf, 100, "%Y%m%d_%H%M%S", gmtime(&now));
 
     std::string filename = "ipm_" + (std::string)time_buf + ".log";
