@@ -27,9 +27,12 @@ pipeline {
   }
   post {
     failure {
-      mail(subject: 'iPM Jenkinsfile build failed', body: 'See attached build console output', to: 'janine@ucar.edu', attachLog: true)
+      emailtext 
+      to: 'janine@ucar.edu', 
+      subject: 'iPM Jenkinsfile build failed',
+       body: 'See attached build console output', 
+      attachLog: true
     }
-
   }
   options {
     buildDiscarder(logRotator(numToKeepStr: '6'))
