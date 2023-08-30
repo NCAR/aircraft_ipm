@@ -27,7 +27,7 @@ pipeline {
   }
   post {
     failure {
-      mail(subject: 'iPM Jenkinsfile build failed', body: 'See build console output within jenkins for details', to: 'janine@ucar.edu')
+      mail(subject: 'iPM Jenkinsfile build failed', body: 'See attached build console output', to: 'janine@ucar.edu', attachLog: true)
     }
 
   }
