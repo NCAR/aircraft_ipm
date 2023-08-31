@@ -22,6 +22,8 @@ pipeline {
       }
       steps {
         sh 'scons'
+        sh 'scons tests'
+        sh 'tests g_test'
       }
     }
   }
