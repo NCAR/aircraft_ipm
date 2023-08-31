@@ -1,0 +1,28 @@
+pipeline {
+  agent {
+    node {
+       label 'UbuntuBionic32'
+    }
+  }
+  triggers {
+    pollSCM('H/5 * * * *')
+  }
+  stages {
+    stage('Shell script 0') {
+      steps {
+        sh 'scons'
+      }
+    }
+  }
+  post {
+    failure {
+      emailext to: "janine@ucar.edu", 
+      subject: "iPM Jenkinsfile Ubuntu build failed",
+       body: "See attached build console output", 
+      attachLog: true
+    }
+  }
+  options {
+    buildDiscarder(logRotator(numToKeepStr: '6'))
+  }
+}
