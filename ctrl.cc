@@ -14,6 +14,9 @@
 #include <fstream>
 #include <cstdio>
 #include <string.h>
+#ifdef __linux__
+    #include <sys/io.h>
+#endif
 
 static naiipm ipm;
 const char *acserver = "192.168.84.2";
@@ -164,6 +167,16 @@ void processArgs(int argc, char *argv[])
 
 int main(int argc, char * argv[])
 {
+
+#ifdef __linux__
+    // If on a linux machine and outb function exists, configure serial port
+    if (not ioperm(0x1E9, 3, 1)) {
+        outb(0x00, 0x1E9);  // Note order is DATA, ADDRESS, but at command line
+        outb(0x3E, 0x1EA);  // outb takes address data eg. sudo outb 0x1E9 0x00
+    } else {
+        perror("Could not configure serial port - ioperm");
+    }
+#endif
 
     // set up logging to a timestamped file
     char time_buf[100];
