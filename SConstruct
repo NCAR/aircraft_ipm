@@ -1,10 +1,15 @@
 # -*- python -*-
 from SCons.Script import COMMAND_LINE_TARGETS
+import sys
 
-def ipmbase(env):
-    env.Append(CXXFLAGS=['-std=c++14'])
+if sys.platform == "darwin":
+    def ipmbase(env):
+        env.Append(CXXFLAGS=['-std=c++14'])
+    env = Environment(tools=['default', ipmbase])
+else:
+    env = Environment(tools=['default'])
 
-env = Environment(tools=['default', ipmbase])
+
 Export('env')
 
 
