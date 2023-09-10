@@ -33,3 +33,6 @@ This software uses googletest for unit testing.
 
 "scons tests" will build the tests.
 "tests/g_test" will run the tests.
+
+### Deployment
+To deploy the code via a dpkg, run "./build_dpkg"
