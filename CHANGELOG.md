@@ -4,9 +4,13 @@ Changelog for iPM code
 
 ## [Unreleased]
 
-### Added
-- Initial commit - just documentation and github setup
+## [0.1] - 2023-09-10 - First tagged release
 
-- Implement simple iPM emulator.
+- iPM control program 
+- simple iPM emulator
+- jenkinsfiles for continuous build on CentOS8 and UbuntuBionic
+- License
+- Documentation
+- debian package builder
 
-- Begin implementing iPm control program (not complete)
+
