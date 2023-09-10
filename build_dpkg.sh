@@ -89,7 +89,7 @@ cp ${files}  ${pkg}-0.1/.        # Add files
 cd ${pkg}-0.1
 
 # Make sure the tag has been created in the repo
-if ! gitdesc=$(git describe --match "v0.1"); then
+if ! gitdesc=$(git describe --tags --match "v0.1"); then
     echo "git describe failed, looking for a tag of the form v0.1"
     exit 1
 fi
