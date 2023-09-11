@@ -133,8 +133,8 @@ void processArgs(int argc, char *argv[])
         errflag++;
     }
 
-    if (errflag or  // not p or
-        (not i and (not nopt or not m or not r or not n)))
+    if (errflag or (geteuid() != 0 and
+        not i and (not nopt or not m or not r or not n)))
     {
         std::cout << "Usage:" << std::endl;
         std::cout << "\t-p <port>\t\tiPM connection port (Default:/dev/ttyS0)"
@@ -161,6 +161,8 @@ void processArgs(int argc, char *argv[])
             << std::endl;
         std::cout << "\t-e\t\t\trun with emulator; longer timeout (optional)"
             << std::endl;
+        std::cout << "Run as root to configure serial port and exit"
+            << std::endl;
         exit(1);
     }
 }
@@ -168,13 +170,19 @@ void processArgs(int argc, char *argv[])
 int main(int argc, char * argv[])
 {
 
+    processArgs(argc, argv);
+
 #ifdef __linux__
     // If on a linux machine and outb function exists, configure serial port
-    if (not ioperm(0x1E9, 3, 1)) {
+    // This command only works if this program is run with sudo. Since we do
+    // not want to run with sudo in general, exit after this command is run.
+    if ((geteuid() == 0) &&  // Running as root
+        (not ioperm(0x1E9, 3, 1))) {  // serial port not configured
+        std::cout << "Configuring serial port... " << std::endl;
         outb(0x00, 0x1E9);  // Note order is DATA, ADDRESS, but at command line
         outb(0x3E, 0x1EA);  // outb takes address data eg. sudo outb 0x1E9 0x00
-    } else {
-        perror("Could not configure serial port - ioperm");
+        std::cout << " done." << std::endl;
+        exit(1);
     }
 #endif
 
@@ -191,12 +199,12 @@ int main(int argc, char * argv[])
     for (int i=0; i< argc; ++i) {
         if (strcmp(argv[i],"-i") == 0) {
             // go back to writing to stdout
+            std::cout << "Start logging" << std::endl;
             std::cout.rdbuf(oldbuf);
             std::remove(filename.c_str());  // remove logfile
         }
     }
 
-    processArgs(argc, argv);
     int fd = ipm.open_port(ipm.Port());
 
     ipm.open_udp(acserver);
