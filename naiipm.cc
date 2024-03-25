@@ -5,7 +5,7 @@
 
 #include <fcntl.h>
 #include <termios.h>
-#include <string.h>
+#include <cstring>
 #include <bitset>
 #include <cstdio>
 #include <regex>

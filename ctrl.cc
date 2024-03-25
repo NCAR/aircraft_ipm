@@ -13,13 +13,38 @@
 #include "naiipm.h"
 #include <fstream>
 #include <cstdio>
-#include <string.h>
+#include <cstring>
 #ifdef __linux__
     #include <sys/io.h>
 #endif
 
 static naiipm ipm;
 const char *acserver = "192.168.84.2";
+
+
+void Usage()
+{
+    std::cout << "Usage:\n"
+                 "\t-p device\t\tiPM connection device (Default:/dev/ttyS0)\n"
+                 "\t-m measurerate\t\tSTATUS & MEASURE collection rate (hz)\n"
+                 "\t-r recordperiod\t\tperiod of RECORD queries (minutes)\n"
+                 "\t-b baudrate\t\tbaud rate (Default:115200)\n"
+                 "\t-n num_addr\t\tnumber of active addresses on iPM\n"
+                 "\t-# addr,procqueries,device\n"
+            "\t\t\t\tnumber 0 to n-1 followed by info block\n"
+                 "\t-i\t\t\trun in interactive mode (optional)\n"
+            "\t\t\t\t- When in interactive mode only -p and -b are\n"
+            "\t\t\t\t  required\n"
+            "\t\t\t\t- Inclusion of -a and -c will send a single\n"
+            "\t\t\t\t  command and exit.\n"
+                 "\t-a\t\t\tset address (optional)\n"
+                 "\t-c\t\t\tset command (optional)\n"
+                 "\t-v\t\t\trun in verbose mode (optional)\n"
+                 "\t-d\t\t\trun in debug mode; don't scale vars (optional)\n"
+                 "\t-e\t\t\trun with emulator; longer timeout (optional)\n"
+                 "Run as root to configure serial port and exit\n";
+}
+
 
 void processArgs(int argc, char *argv[])
 {
@@ -44,7 +69,7 @@ void processArgs(int argc, char *argv[])
         nopt++;
         switch(opt)
         {
-            case 'p':  // Port the iPM is connected to
+            case 'p':  // Device the iPM is connected to
                 p = true;
                 ipm.setPort(optarg);
                 break;
@@ -136,36 +161,11 @@ void processArgs(int argc, char *argv[])
     if (errflag or (geteuid() != 0 and
         not i and (not nopt or not m or not r or not n)))
     {
-        std::cout << "Usage:" << std::endl;
-        std::cout << "\t-p <port>\t\tiPM connection port (Default:/dev/ttyS0)"
-            << std::endl;
-        std::cout << "\t-m <measurerate>\tSTATUS & MEASURE collection rate "
-            << " (hz)" << std::endl;
-        std::cout << "\t-r <recordperiod>\tperiod of RECORD queries (minutes)"
-            << std::endl;
-        std::cout << "\t-b <baudrate>\t\tbaud rate (Default:115200)"
-            << std::endl;
-        std::cout << "\t-n <num_addr>\t\tnumber of active addresses on iPM"
-            << std::endl;
-        std::cout << "\t-# <addr,procqueries,port>\n"
-            "\t\t\t\tnumber 0 to n-1 followed by info block" << std::endl;
-        std::cout << "\t-i\t\t\trun in interactive mode (optional)\n"
-            "\t\t\t\t- When in interactive mode only -p and -b are\n"
-            "\t\t\t\t  required\n"
-            "\t\t\t\t- Inclusion of -a and -c will send a single\n"
-            "\t\t\t\t  command and exit." << std::endl;
-        std::cout << "\t-a\t\t\tset address (optional)" << std::endl;
-        std::cout << "\t-c\t\t\tset command (optional)" << std::endl;
-        std::cout << "\t-v\t\t\trun in verbose mode (optional)" << std::endl;
-        std::cout << "\t-d\t\t\trun in debug mode; don't scale vars (optional)"
-            << std::endl;
-        std::cout << "\t-e\t\t\trun with emulator; longer timeout (optional)"
-            << std::endl;
-        std::cout << "Run as root to configure serial port and exit"
-            << std::endl;
+        Usage();
         exit(1);
     }
 }
+
 
 int main(int argc, char * argv[])
 {
@@ -182,7 +182,7 @@ int main(int argc, char * argv[])
         outb(0x00, 0x1E9);  // Note order is DATA, ADDRESS, but at command line
         outb(0x3E, 0x1EA);  // outb takes address data eg. sudo outb 0x1E9 0x00
         std::cout << " done." << std::endl;
-        exit(1);
+        return 0;
     }
 #endif
 
@@ -219,7 +219,7 @@ int main(int argc, char * argv[])
         {
             ipm.singleCommand(fd, ipm.Cmd(), atoi(ipm.Address()));
         }
-        exit(1);
+        return 0;
     } else {
         if (ipm.init(fd))
         {
@@ -230,7 +230,7 @@ int main(int argc, char * argv[])
         } else {
             std::cout << "Device failed to initialize" << std::endl;
             ipm.close_port(fd);
-            exit(1);
+            return 1;
         }
 
         // Cycle on requested commands
@@ -248,5 +248,6 @@ int main(int argc, char * argv[])
     ipm.close_udp(-1);
 
     ipm.close_port(fd);
-    exit(1);
+
+    return 0;
 }
