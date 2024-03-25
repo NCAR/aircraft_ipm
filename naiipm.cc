@@ -174,14 +174,27 @@ int naiipm::open_port(const char *port)
             exit(2);
         }
 
+        // zero stuff out
+        port_settings.c_iflag &= 0;
+        port_settings.c_oflag &= 0;
+        port_settings.c_lflag &= 0;
+        cfsetspeed(&port_settings, 0);   // wipes out 8,11,12
+        port_settings.c_cflag |= CREAD;  // turn on 8
+        port_settings.c_cflag |= HUPCL;  // turn on 11
+        port_settings.c_cflag |= CLOCAL; // turn on 12
         if (cfsetspeed(&port_settings, get_baud()) == -1)
         {
             std::cout << "Failed to set baud rate to 115200" << std::endl;
         }
 
+        // |= turns on; &= ~ turns off
         port_settings.c_cflag &= ~CRTSCTS; // turn off hardware flow control
-        port_settings.c_cflag |= CS8; // 8n1 (8bit,no parity,1 stopbit)
-        port_settings.c_cc[VTIME] = 1; // 0.1 second timeout
+        // 8n1 (8bit,no parity,1 stopbit)
+        port_settings.c_cflag |= CS8;                // turn on 8bit
+        port_settings.c_cflag &= ~(PARENB | PARODD); // shut off parity
+        port_settings.c_cflag &= ~CSTOPB;            // 1 stopbit
+        port_settings.c_cc[VTIME] = 1; // .1 second timeout
+        port_settings.c_iflag &=  ~(IXON | IXOFF | IXANY); // s/w flow ctrl off
 
         // apply settings to the port
         if (tcsetattr(fd, TCSANOW, &port_settings) == -1)
@@ -543,6 +556,10 @@ void naiipm::trackBadData()
 void naiipm::singleCommand(int fd, std::string cmd, int addr)
 {
     setActiveAddress(fd, addr);
+    if (Verbose())
+    {
+        std::cout << "Sending command " << cmd << std::endl;
+    }
     send_command(fd, cmd, "");
     parse_binary(cmd);
 }
