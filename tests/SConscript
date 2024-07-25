@@ -1,11 +1,16 @@
 # -*- python -*-
+import sys
 
-def testbase(env):
-    env.Append(CXXFLAGS=['-std=c++14'])
+if sys.platform == "darwin":
+    def testbase(env):
+        env.Append(CXXFLAGS=['-std=c++14'])
+        env.Append(CPPPATH='/opt/homebrew/include')
+        env.Append(LIBPATH='/opt/homebrew/lib')
+    env = Environment(tools=['default', testbase])
+else:
+    env = Environment(tools=['default'])
 
-env = Environment(tools=['default', testbase])
-
-env.Append( LIBS = ['gtest_main', 'gtest'])
+env.Append(LIBS = ['gtest_main', 'gtest'])
 
 sources = Split("""
 naiipm_gtest.cc

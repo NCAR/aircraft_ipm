@@ -2,8 +2,9 @@
  ** 2023, Copyright University Corporation for Atmospheric Research
  ********************************************************************
 */
-#define private public  // so can test private functions
 #include <gtest/gtest.h>
+// sytem header includes must be before private public def
+#define private public  // so can test private functions
 #include "../naiipm.cc"
 
 class IpmTest : public ::testing::Test {
