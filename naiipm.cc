@@ -92,7 +92,7 @@ bool naiipm::init(int fd)
 
             // Query Firmware Version
             msg = "VER?";
-            if(status = send_command(fd, msg)) {  // success so stop iterating
+            if((status = send_command(fd, msg))) {  // success so stop iterating
 		std::cout << "Took " << i << " ADR commands to clear iPM on" <<
 		    " init" << std::endl;
 	        break;
