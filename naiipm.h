@@ -139,7 +139,7 @@ class naiipm
     private:
         char buffer[1000];
 
-        bool parseData(std::string cmd, int addrIndex);
+        void parseData(std::string cmd, int addrIndex);
         void parseBitresult(uint16_t *sp);
         void parseMeasure(uint8_t *cp, uint16_t *sp);
         void parseStatus(uint8_t *cp, uint16_t *sp);

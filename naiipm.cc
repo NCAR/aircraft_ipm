@@ -78,12 +78,35 @@ bool naiipm::init(int fd)
         std::cout << "Info for address " << i << " is " << addr(i) << ","
             << procqueries(i) << "," << addrport(i)
             << std::endl;
-        bool status = setActiveAddress(fd, addr(i));
+
+	// When installed on the GV (as opposed to in the lab), on power up
+	// the iPM frequently comes up in a hung state (returns nothing in
+	// response to sent commands. The working theory is that there is some
+	// junk on the port that is corrupting commands being sent. Attempt to
+	// clear this by repeatedly sending the ADR and VER? commands up to 10
+	// times.
+	bool status;
+	for (int j=0; j < 10; j++)
+	{
+            status = setActiveAddress(fd, addr(i));
+
+            // Query Firmware Version
+            msg = "VER?";
+            if(status = send_command(fd, msg)) {  // success so stop iterating
+		std::cout << "Took " << i << " ADR commands to clear iPM on" <<
+		    " init" << std::endl;
+	        break;
+	    }
+
+	    // Wait half a second and try again
+            usleep(500000);  // 0.5 seconds
+	}
         if(not status)
         {
             std::cout << "Unable to set active address to " << addr(i) <<
                 ". Skipping adress " << addr(i) << "for this iteration" <<
                 std::endl;
+            continue;
         }
 
         // Turn Device OFF, wait > 100ms then turn ON to reset state
@@ -113,7 +136,7 @@ bool naiipm::init(int fd)
         if(not send_command(fd, msg)) { return false; }
         msg = "BITRESULT?";
         if(not send_command(fd, msg)) { return false; }
-        status = parseData(msg, i);
+        parseData(msg, i);
     }
 
     if (_numaddr == 0)
@@ -373,14 +396,14 @@ bool naiipm::loop(int fd)
             {
                 msg = "MEASURE?";
                 if(not send_command(fd, msg)) { return false; }
-                bool status = parseData(msg, i);
+                parseData(msg, i);
             }
             std::bitset<4> s = x;
             if ((s &= 0b0001) == 1)  // STATUS command requested
             {
                 msg = "STATUS?";
                 if(not send_command(fd, msg)) { return false; }
-                bool status = parseData(msg, i);
+                parseData(msg, i);
             }
             std::bitset<4> r = x;
             if ((r &= 0b0100) == 4)  // RECORD command requested
@@ -389,7 +412,7 @@ bool naiipm::loop(int fd)
                 {
                     msg = "RECORD?";
                     if(not send_command(fd, msg)) { return false; }
-                    bool status = parseData(msg, i);
+                    parseData(msg, i);
                     _recordCount = 0;
                 }
             }
@@ -794,7 +817,7 @@ void naiipm::parse_binary(std::string cmd)
     }
 }
 
-bool naiipm::parseData(std::string cmd, int adr)
+void naiipm::parseData(std::string cmd, int adr)
 {
     if (Verbose())
     {
@@ -814,7 +837,6 @@ bool naiipm::parseData(std::string cmd, int adr)
     // parse data
     if (cmd == "BITRESULT?") {
         parseBitresult(sp);
-        return true;
     }
 
     if (cmd == "RECORD?") {
@@ -940,7 +962,6 @@ bool naiipm::parseData(std::string cmd, int adr)
         send_udp(buffer, adr);
     }
 
-    return true;
 }
 
 void naiipm::parseRecord(uint8_t *cp, uint16_t *sp, uint32_t *lp)
