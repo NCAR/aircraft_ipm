@@ -25,22 +25,22 @@ const char *acserver = "192.168.84.2";
 void Usage()
 {
     std::cout << "Usage:\n"
-                 "\t-p device\t\tiPM connection device (Default:/dev/ttyS0)\n"
+                 "\t-D device\t\tiPM connection device (Default:/dev/ttyS0)\n"
                  "\t-m measurerate\t\tSTATUS & MEASURE collection rate (hz)\n"
                  "\t-r recordperiod\t\tperiod of RECORD queries (minutes)\n"
                  "\t-b baudrate\t\tbaud rate (Default:115200)\n"
                  "\t-n num_addr\t\tnumber of active addresses on iPM\n"
-                 "\t-# addr,procqueries,device\n"
+                 "\t-# addr,procqueries,port\n"
             "\t\t\t\tnumber 0 to n-1 followed by info block\n"
                  "\t-i\t\t\trun in interactive mode (optional)\n"
-            "\t\t\t\t- When in interactive mode only -p and -b are\n"
+            "\t\t\t\t- When in interactive mode only -D and -b are\n"
             "\t\t\t\t  required\n"
             "\t\t\t\t- Inclusion of -a and -c will send a single\n"
             "\t\t\t\t  command and exit.\n"
                  "\t-a\t\t\tset address (optional)\n"
                  "\t-c\t\t\tset command (optional)\n"
                  "\t-v\t\t\trun in verbose mode (optional)\n"
-                 "\t-d\t\t\trun in debug mode; don't scale vars (optional)\n"
+                 "\t-H\t\t\trun in hexadecimal output mode, comma-delimited; don't scale vars (optional)\n"
                  "\t-e\t\t\trun with emulator; longer timeout (optional)\n"
                  "Run as root to configure serial port and exit\n";
 }
@@ -50,7 +50,7 @@ void processArgs(int argc, char *argv[])
 {
     int opt;
     int errflag = 0, nopt = 0;
-    bool p = false;
+    bool D = false;
     bool m = false;
     bool r = false;
     bool b = false;
@@ -63,15 +63,15 @@ void processArgs(int argc, char *argv[])
 
     // Options between colons require an argument
     // Options after last colon do not.
-    while((opt = getopt(argc, argv, ":p:m:r:b:n:0:1:2:3:4:5:6:7:a:c:ivde"))
+    while((opt = getopt(argc, argv, ":D:m:r:b:n:0:1:2:3:4:5:6:7:a:c:ivHe"))
            != -1)
     {
         nopt++;
         switch(opt)
         {
-            case 'p':  // Device the iPM is connected to
-                p = true;
-                ipm.setPort(optarg);
+            case 'D':  // Device the iPM is connected to
+                D = true;
+                ipm.setDevice(optarg);
                 break;
             case 'm':  // STATUS & MEASURE collection rate (hz)
                 m = true;
@@ -132,7 +132,7 @@ void processArgs(int argc, char *argv[])
             case 'v': // Run in verbose mode
                 ipm.setVerbose();
                 break;
-            case 'd': // Run in debug mode (output hex values)
+            case 'H': // Run in hexadecimal output mode, comma delimited
                 ipm.setScaleFlag(0);  // Turn off scaling
             case 'e': // Run in emulator mode
                 ipm.setEmulate();
@@ -191,7 +191,7 @@ int main(int argc, char * argv[])
     time_t now = time({});;
     strftime(time_buf, 100, "%Y%m%d_%H%M%S", gmtime(&now));
 
-    std::string filename = "ipm_" + (std::string)time_buf + ".log";
+    std::string filename = "/var/log/ads/ipm_" + (std::string)time_buf + ".log";
     std::ofstream logfile(filename);
     auto oldbuf = std::cout.rdbuf( logfile.rdbuf());
 
@@ -205,7 +205,7 @@ int main(int argc, char * argv[])
         }
     }
 
-    int fd = ipm.open_port(ipm.Port());
+    int fd = ipm.open_port(ipm.Device());
 
     ipm.open_udp(acserver);
 

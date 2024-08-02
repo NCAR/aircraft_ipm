@@ -91,9 +91,9 @@ class naiipm
         naiipm();
         ~naiipm();
 
-        void setPort(const char port[])   { _port = port; }
-        const char* Port()      { return _port; }
-        int open_port(const char *port);
+        void setDevice(const char device[])   { _device = device; }
+        const char* Device()      { return _device; }
+        int open_port(const char *device);
         void close_port(int fd);
 
         void open_udp(const char *ip);
@@ -186,7 +186,7 @@ class naiipm
         char* getData(std::string msg)
             { return _ipm_data.find(msg)->second; }
 
-        const char* _port;
+        const char* _device;
         int _numaddr;
         bool _interactive;
         const char*  _address;

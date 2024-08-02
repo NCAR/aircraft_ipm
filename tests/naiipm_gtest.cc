@@ -364,7 +364,7 @@ TEST_F(IpmTest, ipmSetRecordFreq)
 /********************************************************************
  ** Test storing and retrieving command line args.  ipm_ctrl accepts
  ** the following command line arguments:
- **  -p <port>           port iPM is connected to
+ **  -D <device>         device iPM is connected to
  **  -s <port>           port to send status msgs to
  **  -m <measurerate>    STATUS & MEASURE collection rate  (hz)
  **  -r <recordperiod>   period of RECORD queries (minutes)
@@ -373,6 +373,12 @@ TEST_F(IpmTest, ipmSetRecordFreq)
  **  -# <addr,procqueries,port>
  **                      number 0 to n-1 followed by info block
  **  -i                  run in interactive mode (optional)
+ **  -a <address>        set address (optional)
+ **  -c <command>        set command (optional)
+ **  -v                  run in verbose mode (optional)
+ **  -H                  run in hexadecimal output mode, comma-delimited
+ **                      don't scale vars (optional)
+ **  -e                  run with emulator; longer timeout (optional)
  **
  ** 2023, Copyright University Corporation for Atmospheric Research
  ********************************************************************
@@ -380,9 +386,9 @@ TEST_F(IpmTest, ipmSetRecordFreq)
 
 TEST_F(IpmTest, ipmSetGetIpmPort)
 {
-    // port iPM is connected to
-    ipm.setPort("/dev/ttyS0");
-    EXPECT_EQ(ipm.Port(), "/dev/ttyS0");
+    // device iPM is connected to
+    ipm.setDevice("/dev/ttyS0");
+    EXPECT_EQ(ipm.Device(), "/dev/ttyS0");
 }
 
 TEST_F(IpmTest, ipmSetGetStatusPort)

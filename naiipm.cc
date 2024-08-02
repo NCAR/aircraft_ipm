@@ -47,7 +47,7 @@ naiipm::naiipm():_interactive(false)
     const char *baud = "115200";
     setBaud(baud);
     const char *device = "/dev/ttyS0";
-    setPort(device);
+    setDevice(device);
     const char *naddr = "1";  // one address by default
     setNumAddr(naddr);
     const char *undefAddr = "-1";
@@ -81,7 +81,7 @@ bool naiipm::init(int fd)
 
 	// When installed on the GV (as opposed to in the lab), on power up
 	// the iPM frequently comes up in a hung state (returns nothing in
-	// response to sent commands. The working theory is that there is some
+	// response to sent commands). The working theory is that there is some
 	// junk on the port that is corrupting commands being sent. Attempt to
 	// clear this by repeatedly sending the ADR and VER? commands up to 10
 	// times.
@@ -168,16 +168,16 @@ void naiipm::rmAddr(int i)
 }
 
 // Establish connection to iPM
-int naiipm::open_port(const char *port)
+int naiipm::open_port(const char *device)
 {
     int fd; // file description for the serial port
     struct termios port_settings; // structure to store the port settings in
 
-    fd = open(Port(), O_RDWR | O_NOCTTY | O_NONBLOCK); // read/write
+    fd = open(Device(), O_RDWR | O_NOCTTY | O_NONBLOCK); // read/write
 
     if (fd == -1) // if open is unsuccessful
     {
-        std::cout << "open_port: Unable to open " << port << std::endl;
+        std::cout << "open_port: Unable to open " << device << std::endl;
         exit(1);
     }
     else
@@ -185,7 +185,7 @@ int naiipm::open_port(const char *port)
         // Confirm we are pointing to a serial device
         if (!isatty(fd))
         {
-            std::cout << port << " is not a serial device" << std::endl;
+            std::cout << device << " is not a serial device" << std::endl;
             close_port(fd);
             exit(1);
         }
@@ -227,7 +227,8 @@ int naiipm::open_port(const char *port)
 
         if (Verbose())
         {
-            std::cout << "Port " << port << " is open." << std::endl;
+            std::cout << "Port for device " << device << " is open."
+                << std::endl;
         }
     }
 
