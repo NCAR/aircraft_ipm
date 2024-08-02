@@ -49,7 +49,22 @@ void Usage()
                  "\t-H\t\t\trun in hexadecimal output mode, comma-delimited;\n"
                  "\t\t\t\t  don't scale vars (optional)\n"
                  "\t-e\t\t\trun with emulator; longer timeout (optional)\n"
-                 "Run as root to configure serial port and exit\n";
+                 "\n"
+                 "Examples:\n"
+                 "\t./ipm_ctrl -i -a 2 -D /dev/ttyS0 -c RECORD?\n"
+                 "\t    Interactive, Send a single RECORD? query to iPM "
+                 "address 2 on /dev/ttyS0\n"
+                 "\t./ipm_ctrl -i -a 1 -D /dev/ttyS0 -c MEASURE? -H\n"
+                 "\t    Interactive, Send a single MEASURE? query to iPM "
+                 "address 1 on /dev/ttyS0\n\t    and output hex values\n"
+                 "\t./ipm_ctrl -i\n"
+                 "\t    Interactive, Start menu-based control of iPM\n"
+                 "\t./ipm_ctrl -m 1 -r 10 -n 2 -0 0,5,30101 -1 2,5,30102"
+                 " -D /dev/ttyS0\n\t    Launch full application with bus "
+                 "identification at\n\t    two addresses, initialization, "
+                 "periodic data queries and transmission\n"
+                 "\t    to network IP port.\n"
+                 "\nRun as root to configure serial port and exit\n";
 }
 
 
