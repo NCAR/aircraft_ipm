@@ -505,7 +505,15 @@ void naiipm::get_response(int fd, int len, bool bin)
             unsigned int i = (unsigned char)c;
             if (Verbose())
             {
-              std::cout << n+1 << ": [" << c << "] " << std::dec << i << ",";
+              // If c is not a printable character, for printing purposes
+              // replace it with a null string terminator"
+              char ch = c;
+              if (not std::isprint(static_cast<unsigned char>(c))) {
+                  ch = '\0';
+              } else {
+                  ch = c;
+              }
+              std::cout << n+1 << ": [" << ch << "] " << std::dec << i << ",";
               std::cout << std::hex << i << " : " << x << std::dec << std::endl;
             }
             buffer[n] = c;
