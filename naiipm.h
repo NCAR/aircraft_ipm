@@ -136,6 +136,8 @@ class naiipm
         void setRecordFreq();
         void sleep();
 
+        void configureSerialPort();
+
     private:
         char buffer[1000];
 
@@ -153,7 +155,7 @@ class naiipm
         const char* _measureRate;
         const char* _recordPeriod;
         const char* _baudRate;
-	uint_fast32_t get_baud();
+	    uint_fast32_t get_baud();
 
         int _recordCount;
         int _recordFreq;

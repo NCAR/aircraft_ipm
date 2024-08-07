@@ -24,47 +24,49 @@ const char *acserver = "192.168.84.2";
 
 void Usage()
 {
-    std::cout << "Usage:\n"
-                 "\t-D device\t\tiPM connection device (Default:/dev/ttyS0)\n"
-                 "\t-m measurerate\t\tSTATUS & MEASURE collection rate (hz)\n"
-                 "\t-r recordperiod\t\tperiod of RECORD queries (minutes)\n"
-                 "\t-b baudrate\t\tbaud rate (Default:115200)\n"
-                 "\t-n num_addr\t\tnumber of active addresses on iPM\n"
+    std::cout << "\nUsage:\n"
+                 "\t-D device\tiPM connection device (Default:/dev/ttyS0)\n"
+                 "\t-m measurerate\tSTATUS & MEASURE collection rate (hz)\n"
+                 "\t-r recordperiod\tperiod of RECORD queries (minutes)\n"
+                 "\t-b baudrate\tbaud rate (Default:115200)\n"
+                 "\t-n num_addr\tnumber of active addresses on iPM\n"
                  "\t-# addr,procqueries,port\n"
-                 "\t\t\t\t- addr is the iPM address; a number 0 to n-1\n"
-                 "\t\t\t\t- procqueries is an integer representing a 3-bit\n"
-                 "\t\t\t\t  boolean field indicating which query responses\n"
-                 "\t\t\t\t  [RECORD,MEASURE,STATUS] should be processed, eg\n"
-                 "\t\t\t\t  3 (b’011) requests MEASURE+STATUS\n"
-                 "\t\t\t\t  5 (b’101) requests RECORD+STATUS\n"
-                 "\t\t\t\t- port is the port to send the output UDP string\n"
-                 "\t-i\t\t\trun in interactive mode (optional)\n"
-                 "\t\t\t\t- When in interactive mode only -D and -b are\n"
-                 "\t\t\t\t  required\n"
-                 "\t\t\t\t- Inclusion of -a and -c will send a single\n"
-                 "\t\t\t\t  command and exit.\n"
-                 "\t-a\t\t\tset address (optional)\n"
-                 "\t-c\t\t\tset command (optional)\n"
-                 "\t-v\t\t\trun in verbose mode (optional)\n"
-                 "\t-H\t\t\trun in hexadecimal output mode, comma-delimited;\n"
-                 "\t\t\t\t  don't scale vars (optional)\n"
-                 "\t-e\t\t\trun with emulator; longer timeout (optional)\n"
+                 "\t\t\t  - addr is the iPM address; a number 0 to n-1\n"
+                 "\t\t\t  - procqueries is an integer representing a\n"
+                 "\t\t\t  3-bit boolean field indicating which query\n"
+                 "\t\t\t  responses [RECORD,MEASURE,STATUS] should be\n"
+                 "\t\t\t  processed, eg\n"
+                 "\t\t\t     3 (b’011) requests MEASURE+STATUS\n"
+                 "\t\t\t     5 (b’101) requests RECORD+STATUS\n"
+                 "\t\t\t  - port which to send the output UDP string\n"
+                 "\t-i \t\trun in interactive mode (optional)\n"
+                 "\t\t\t  - When in interactive mode only -D and -b are\n"
+                 "\t\t\t  required\n"
+                 "\t\t\t  - Inclusion of -a and -c will send a single\n"
+                 "\t\t\t  command and exit.\n"
+                 "\t-a \t\tset address (optional)\n"
+                 "\t-c \t\tset command (optional)\n"
+                 "\t-v \t\trun in verbose mode (optional)\n"
+                 "\t-H \t\trun in hexadecimal output mode, comma-delimited\n"
+                 "\t\t\t  don't scale vars (optional)\n"
+                 "\t-e \t\trun with emulator; longer timeout (optional)\n"
+                 "\t-S \t\tConfigure serial port and exit. Must be run as\n"
+                 "\t\t\t  root\n"
                  "\n"
                  "Examples:\n"
                  "\t./ipm_ctrl -i -a 2 -D /dev/ttyS0 -c RECORD?\n"
                  "\t    Interactive, Send a single RECORD? query to iPM "
-                 "address 2 on /dev/ttyS0\n"
+                 "address 2 on\n\t     /dev/ttyS0\n"
                  "\t./ipm_ctrl -i -a 1 -D /dev/ttyS0 -c MEASURE? -H\n"
                  "\t    Interactive, Send a single MEASURE? query to iPM "
-                 "address 1 on /dev/ttyS0\n\t    and output hex values\n"
+                 "address 1 on \n\t    /dev/ttyS0 and output hex values\n"
                  "\t./ipm_ctrl -i\n"
                  "\t    Interactive, Start menu-based control of iPM\n"
                  "\t./ipm_ctrl -m 1 -r 10 -n 2 -0 0,5,30101 -1 2,5,30102"
                  " -D /dev/ttyS0\n\t    Launch full application with bus "
                  "identification at\n\t    two addresses, initialization, "
-                 "periodic data queries and transmission\n"
-                 "\t    to network IP port.\n"
-                 "\nRun as root to configure serial port and exit\n";
+                 "periodic data queries and\n\t    transmission to network "
+                 "IP port.\n\n";
 }
 
 
@@ -82,10 +84,9 @@ void processArgs(int argc, char *argv[])
     std::string c = "";
     int nInfo = 0;
 
-
     // Options between colons require an argument
     // Options after last colon do not.
-    while((opt = getopt(argc, argv, ":D:m:r:b:n:0:1:2:3:4:5:6:7:a:c:ivHe"))
+    while((opt = getopt(argc, argv, ":D:m:r:b:n:0:1:2:3:4:5:6:7:a:c:ivHeS"))
            != -1)
     {
         nopt++;
@@ -159,6 +160,9 @@ void processArgs(int argc, char *argv[])
             case 'e': // Run in emulator mode
                 ipm.setEmulate();
                 break;
+            case 'S': // Configure serial port
+                ipm.configureSerialPort();
+                exit(0);
             case ':':
                 std::cerr << "option -" << char(optopt) <<
                     " needs a value" << std::endl;
@@ -186,27 +190,23 @@ void processArgs(int argc, char *argv[])
         Usage();
         exit(1);
     }
+
+    // If running as root and included -S option, will exit before get here
+    if ((geteuid() == 0)) // Running as root
+    {
+        std::cout << "\n**** Running as root. If you are trying to configure "
+            "****\n**** serial ports, please use the -S option          ****\n"
+            << std::endl;
+        Usage();
+        exit(1);
+    }
+    return;
 }
 
 
 int main(int argc, char * argv[])
 {
-
     processArgs(argc, argv);
-
-#ifdef __linux__
-    // If on a linux machine and outb function exists, configure serial port
-    // This command only works if this program is run with sudo. Since we do
-    // not want to run with sudo in general, exit after this command is run.
-    if ((geteuid() == 0) &&  // Running as root
-        (not ioperm(0x1E9, 3, 1))) {  // serial port not configured
-        std::cout << "Configuring serial port... " << std::endl;
-        outb(0x00, 0x1E9);  // Note order is DATA, ADDRESS, but at command line
-        outb(0x3E, 0x1EA);  // outb takes address data eg. sudo outb 0x1E9 0x00
-        std::cout << " done." << std::endl;
-        return 0;
-    }
-#endif
 
     // set up logging to a timestamped file
     char time_buf[100];

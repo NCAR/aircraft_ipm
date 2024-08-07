@@ -61,6 +61,31 @@ naiipm::~naiipm()
 {
 }
 
+// If on a linux machine and outb function exists, configure serial port
+// This command only works if this program is run with sudo. Since we do
+// not want to run with sudo in general, exit after this command is run.
+void naiipm::configureSerialPort()
+{
+#ifdef __linux__
+    if ((geteuid() == 0) {  // Running as root
+        if (not ioperm(0x1E9, 3, 1)) {  // serial port not configured
+            std::cout << "Configuring serial port... " << std::endl;
+            outb(0x00, 0x1E9);  // Here order is DATA, ADDRESS, but at command
+            outb(0x3E, 0x1EA);  // line outb takes address data eg.
+                                // sudo outb 0x1E9 0x00
+            std::cout << " done." << std::endl;
+        } else {
+            std::cout << "Serial port already configured. Nothing to do"
+              << std::endl;
+        }
+    } else {
+        std::cout << "Must be root to configure serial port" << std::endl;
+    }
+#else
+    std::cout << "serial port configuration only works on linux" << std::endl;
+#endif
+}
+
 //Initialize the iPM device. Returns a verified list of device addresses
 // that may be shorter than the list passed in if some addresses did not
 // pass verification.
