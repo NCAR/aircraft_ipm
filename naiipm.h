@@ -51,28 +51,6 @@ struct
 
 struct
 {
-    uint16_t FREQ;      // AC Power Frequency
-    uint16_t TEMP;      // Temperature
-    uint16_t VRMSA;     // Phase A RMS AC Voltage
-    uint16_t VRMSB;     // Phase B RMS AC Voltage
-    uint16_t VRMSC;     // Phase C RMS AC Voltage
-    uint16_t VPKA;      // Phase A Peak AC Voltage
-    uint16_t VPKB;      // Phase B Peak AC Voltage
-    uint16_t VPKC;      // Phase C Peak AC Voltage
-    uint16_t VDCA;      // Phase A Voltage, DC Component
-    uint16_t VDCB;      // Phase B Voltage, DC Component
-    uint16_t VDCC;      // Phase C Voltage, DC Component
-    uint16_t PHA;       // Phase A Voltage, AC Phase Angle
-    uint16_t PHB;       // Phase B Voltage, AC Phase Angle
-    uint16_t PHC;       // Phase C Voltage, AC Phase Angle
-    uint8_t THDA;       // Phase A Voltage THD
-    uint8_t THDB;       // Phase B Voltage THD
-    uint8_t THDC;       // Phase C Voltage THD
-    uint8_t POWEROK;    // Power OK, All phases
-} measure;
-
-struct
-{
     uint8_t OPSTATE;        // Operational State
     uint8_t POWEROK;        // Power OK
     uint32_t TRIPFLAGS;     // Power Trip Flags, performance exceeds limit
@@ -143,7 +121,6 @@ class naiipm
 
         void parseData(std::string cmd, int addrIndex);
         void parseBitresult(uint16_t *sp);
-        void parseMeasure(uint8_t *cp, uint16_t *sp);
         void parseStatus(uint8_t *cp, uint16_t *sp);
         void parseRecord(uint8_t *cp, uint16_t *sp, uint32_t *lp);
 

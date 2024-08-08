@@ -16,6 +16,7 @@ Export('env')
 sources = Split("""
 ctrl.cc
 naiipm.cc
+src/measure.cc
 """)
 
 

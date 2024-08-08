@@ -6,6 +6,7 @@
 // sytem header includes must be before private public def
 #define private public  // so can test private functions
 #include "../naiipm.cc"
+#include "../src/measure.cc"
 
 class IpmTest : public ::testing::Test {
 private:
@@ -226,7 +227,8 @@ TEST_F(IpmTest, ipmParseMeasure)
     char *data = ipm.getData("MEASURE?");
     uint8_t *cp = (uint8_t *)data;
     uint16_t *sp = (uint16_t *)data;
-    ipm.parseMeasure(cp, sp);
+    ipmMeasure measurec;
+    measurec.parseMeasure(cp, sp);
     EXPECT_EQ(measure.FREQ,600);
     EXPECT_EQ(measure.TEMP,517);
     EXPECT_EQ(measure.VRMSA,1163);
