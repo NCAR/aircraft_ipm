@@ -1,0 +1,7 @@
+name: ipmenv
+channels:
+  - defaults
+  - conda-forge
+dependencies:
+  - pyserial
+  - numpy
