@@ -1,13 +1,6 @@
 # Model iPM - Intelligent Power Monitor control software
 EOL/RAF code to control the NAI iPM and send UDP packets to nidas. Main program can be forked by nidas dsm process or run standalone.
 
-## Configuring runtime environment
-The required python environment is captured in the ipmenv YAML file. To activate the environment:
-
-```
-> conda activate mtp
-```
-
 ## Running the code
 This code can be run four different ways: from nidas, or from the command line with a menu, specifying an address and command, or free running as would be called from nidas.
 
@@ -38,6 +31,12 @@ will loop over command as specified in procqueries at the rates specified in mea
 ## Developmemnt
 
 ### Running with the emulator
+The required python environment is captured in the ipmenv YAML file. To activate the environment:
+
+```
+> conda activate mtp
+```
+
 To run with the emulator, run
 
 ```
