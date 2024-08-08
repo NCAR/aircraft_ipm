@@ -1,12 +1,11 @@
 /********************************************************************
- ** 2023, Copyright University Corporation for Atmospheric Research
+ ** 2024, Copyright University Corporation for Atmospheric Research
  ********************************************************************
 */
 #include <gtest/gtest.h>
 // sytem header includes must be before private public def
 #define private public  // so can test private functions
 #include "../naiipm.cc"
-#include "../src/measure.cc"
 
 class IpmTest : public ::testing::Test {
 private:
@@ -158,23 +157,16 @@ TEST_F(IpmTest, ipmParseData)
 
     testing::internal::CaptureStdout();
     ipm.parseData("MEASURE?", 0);
-    EXPECT_EQ(measure.FREQ,600);
-    str = ipm.buffer;
-    EXPECT_EQ(str,"MEASURE,0258,0205,048b,048b,0000,0604,05fc,0000,001c,001c,0009,0dc9,06c8,0707,1b,1b,01,01\r\n");
     EXPECT_EQ(testing::internal::GetCapturedStdout(),
         "sending to port 30101 UDP string MEASURE,0258,0205,048b,048b,0000,0604,05fc,0000,001c,001c,0009,0dc9,06c8,0707,1b,1b,01,01\r\n");
 
     testing::internal::CaptureStdout();
     ipm.parseData("STATUS?", 0);
-    EXPECT_EQ(measure.FREQ,600);
-    str = ipm.buffer;
-    EXPECT_EQ(str,"STATUS,02,01,0000,0000,0000\r\n");
     EXPECT_EQ(testing::internal::GetCapturedStdout(),
         "sending to port 30101 UDP string STATUS,02,01,0000,0000,0000\r\n");
 
     testing::internal::CaptureStdout();
     ipm.parseData("RECORD?", 0);
-    EXPECT_EQ(measure.FREQ,600);
     str = ipm.buffer;
     EXPECT_EQ(str,"RECORD,00,02,00000063,0469448b,00000000,00000000,00d1,049b,00d1,049b,0000,0000,0245,0258,0000,0071,001a,0055,0000,0015,1a,71,1a,71,01,01,0604,065a,0604,0653,0000,0018,087c1b13\r\n");
     EXPECT_EQ(testing::internal::GetCapturedStdout(),
@@ -188,23 +180,16 @@ TEST_F(IpmTest, ipmParseData)
 
     testing::internal::CaptureStdout();
     ipm.parseData("MEASURE?", 0);
-    EXPECT_EQ(measure.FREQ,600);
-    str = ipm.buffer;
-    EXPECT_EQ(str,"MEASURE,60.00,51.70,116.30,116.30,0.00,154.00,153.20,0.00,0.0280,0.0280,0.0090,352.90,173.60,179.90,2.70,2.70,0.10,1\r\n");
     EXPECT_EQ(testing::internal::GetCapturedStdout(),
         "sending to port 30101 UDP string MEASURE,60.00,51.70,116.30,116.30,0.00,154.00,153.20,0.00,0.0280,0.0280,0.0090,352.90,173.60,179.90,2.70,2.70,0.10,1\r\n");
 
     testing::internal::CaptureStdout();
     ipm.parseData("STATUS?", 0);
-    EXPECT_EQ(measure.FREQ,600);
-    str = ipm.buffer;
-    EXPECT_EQ(str,"STATUS,2,1,0,0,0,0\r\n");
     EXPECT_EQ(testing::internal::GetCapturedStdout(),
         "sending to port 30101 UDP string STATUS,2,1,0,0,0,0\r\n");
 
     testing::internal::CaptureStdout();
     ipm.parseData("RECORD?", 0);
-    EXPECT_EQ(measure.FREQ,600);
     str = ipm.buffer;
     EXPECT_EQ(str,"RECORD,0,2,99,74007691,0,0,20.90,117.90,20.90,117.90,0.00,0.00,58.10,60.00,0.0000,0.1130,0.0260,0.0850,0.0000,0.0210,2.60,11.30,2.60,11.30,0.10,0.10,154.00,162.60,154.00,161.90,0.00,2.40,142351123\r\n");
     EXPECT_EQ(testing::internal::GetCapturedStdout(),
@@ -218,48 +203,6 @@ TEST_F(IpmTest, ipmParseBitresult)
     char *data = ipm.getData("BITRESULT?");
     uint16_t *sp = (uint16_t *)data;
     ipm.parseBitresult(sp);
-}
-
-TEST_F(IpmTest, ipmParseMeasure)
-{
-    //MEASURE,60.00,51.70,116.30,116.30,0.00,154.00,153.20,0.00,0.0280,0.0280,
-    //    0.0090,352.90,173.60,179.90,2.70,2.70,0.10,1
-    char *data = ipm.getData("MEASURE?");
-    uint8_t *cp = (uint8_t *)data;
-    uint16_t *sp = (uint16_t *)data;
-    ipmMeasure measurec;
-    measurec.parseMeasure(cp, sp);
-    EXPECT_EQ(measure.FREQ,600);
-    EXPECT_EQ(measure.TEMP,517);
-    EXPECT_EQ(measure.VRMSA,1163);
-    EXPECT_EQ(measure.VRMSB,1163);
-    EXPECT_EQ(measure.VRMSC,0);
-    EXPECT_EQ(measure.VPKA,1540);
-    EXPECT_EQ(measure.VPKB,1532);
-    EXPECT_EQ(measure.VPKC,0);
-    EXPECT_EQ(measure.VDCA,28);
-    EXPECT_EQ(measure.VDCB,28);
-    EXPECT_EQ(measure.VDCC,9);
-    EXPECT_EQ(measure.PHA,3529);
-    EXPECT_EQ(measure.PHB,1736);
-    EXPECT_EQ(measure.PHC,1799);
-    EXPECT_EQ(measure.THDA,27);
-    EXPECT_EQ(measure.THDB,27);
-    EXPECT_EQ(measure.THDC,1);
-    EXPECT_EQ(measure.POWEROK,1);
-}
-TEST_F(IpmTest, ipmParseStatus)
-{
-    // STATUS,2,1,0,0,0
-    char *data = ipm.getData("STATUS?");
-    uint8_t *cp = (uint8_t *)data;
-    uint16_t *sp = (uint16_t *)data;
-    ipm.parseStatus(cp, sp);
-    EXPECT_EQ(status.OPSTATE,2);
-    EXPECT_EQ(status.POWEROK,1);
-    EXPECT_EQ(status.TRIPFLAGS,0);
-    EXPECT_EQ(status.CAUTIONFLAGS,0);
-    EXPECT_EQ(status.BITSTAT,0);
 }
 
 TEST_F(IpmTest, ipmParseRecord)

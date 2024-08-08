@@ -1,3 +1,7 @@
+/********************************************************************
+ ** 2024, Copyright University Corporation for Atmospheric Research
+ ********************************************************************
+*/
 #include <arpa/inet.h>
 #include <iostream>
 
@@ -36,8 +40,11 @@ class ipmMeasure
 
         ipmMeasure();
         ~ipmMeasure();
-        void parseMeasure(uint8_t *cp, uint16_t *sp);
-        void createMeasureLine(char *buffer, int scaleflag);
+
+        /* Parse response to the MEASURE command into component variables */
+        void parse(uint8_t *cp, uint16_t *sp);
+        /* Build a comma delimited string to send as a UDP packet to nidas */
+        void createUDP(char *buffer, int scaleflag);
 };
 
 #endif /* MEASURE_H */

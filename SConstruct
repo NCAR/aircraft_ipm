@@ -17,6 +17,7 @@ sources = Split("""
 ctrl.cc
 naiipm.cc
 src/measure.cc
+src/status.cc
 """)
 
 

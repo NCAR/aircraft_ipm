@@ -14,6 +14,8 @@ env.Append(LIBS = ['gtest_main', 'gtest'])
 
 sources = Split("""
 naiipm_gtest.cc
+measure_gtest.cc
+status_gtest.cc
 """)
 
 env.Program(target = 'g_test', source = sources)

@@ -1,5 +1,5 @@
 /********************************************************************
- ** 2023, Copyright University Corporation for Atmospheric Research
+ ** 2024, Copyright University Corporation for Atmospheric Research
  ********************************************************************
 */
 #include "measure.h"
@@ -15,8 +15,9 @@ ipmMeasure::~ipmMeasure()
 {
 }
 
-void ipmMeasure::parseMeasure(uint8_t *cp, uint16_t *sp)
+void ipmMeasure::parse(uint8_t *cp, uint16_t *sp)
 {
+
     // There is a typo in the programming manual. Byte should start at
     // zero.
     measure.FREQ = sp[0];   // Frequency (0.1Hz)
@@ -40,7 +41,7 @@ void ipmMeasure::parseMeasure(uint8_t *cp, uint16_t *sp)
     measure.POWEROK = cp[33];  // PowerOK (1 = power good, 0 = no good)
 }
 
-void ipmMeasure::createMeasureLine(char *buffer, int scaleflag)
+void ipmMeasure::createUDP(char *buffer, int scaleflag)
 {
     if (scaleflag >= 1) {
         snprintf(buffer, 255, "MEASURE,%.2f,%.2f,%.2f,%.2f,%.2f,%.2f,%.2f,"

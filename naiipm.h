@@ -49,15 +49,6 @@ struct
     uint32_t CRC;       // CRC-32
 } record;
 
-struct
-{
-    uint8_t OPSTATE;        // Operational State
-    uint8_t POWEROK;        // Power OK
-    uint32_t TRIPFLAGS;     // Power Trip Flags, performance exceeds limit
-    uint32_t CAUTIONFLAGS;  // Power Caution Flags, marginal performance
-    uint16_t BITSTAT;       // bitStatus
-} status;
-
 
 /**
  * Class to initialize and control North Atlantic Industries
@@ -121,7 +112,6 @@ class naiipm
 
         void parseData(std::string cmd, int addrIndex);
         void parseBitresult(uint16_t *sp);
-        void parseStatus(uint8_t *cp, uint16_t *sp);
         void parseRecord(uint8_t *cp, uint16_t *sp, uint32_t *lp);
 
         void get_response(int fd, int len, bool bin);
@@ -192,6 +182,7 @@ class naiipm
 
         // Bad data counter
         int _badData;
+
         void trackBadData();
 
         // CRC validation
