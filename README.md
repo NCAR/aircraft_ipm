@@ -5,7 +5,7 @@ EOL/RAF code to control the NAI iPM and send UDP packets to nidas. Main program 
 This code can be run four different ways: from nidas, or from the command line with a menu, specifying an address and command, or free running as would be called from nidas.
 
 ### From nidas
-To run from nidas, use the ipm.xml file in this directory as a template to add the iPM to the project xml files. Download and install this software to the DSM where the iPM is mounted, eg git clone this repo, "scons", and "scons install". Then when dsm_server is started, it will launch this code, initialize the iPM and send commands as configured in the XML.
+To run from nidas, use the ipm.xml file in this directory as a template to add the iPM to the project xml files. Download and install this software to the DSM where the iPM is mounted, eg `git clone this_repo`, `scons`, and `scons install`. Then when dsm_server is started, it will launch this code, initialize the iPM and send commands as configured in the XML.
 
 ### From the command line
 To run from the command line, login to the DSM where the iPM is mounted, and enter one of the following command line patterns:
@@ -26,7 +26,7 @@ will loop over command as specified in procqueries at the rates specified in mea
  to send a single command to given address
 
 ## Building the software
-"scons" will build ipm_ctrl
+`scons` will build ipm_ctrl
 
 ## Developmemnt
 
@@ -43,13 +43,14 @@ To run with the emulator, run
 python3 emulate.py
 ```
 
-In a separate window run one of the '''ipm_ctrl''' commands above and append -e to the command. The emulator responds more slowly than the iPM. The -e increases the timeout period.
+In a separate window run one of the `ipm_ctrl` commands above and append `-e` to the command. The emulator responds more slowly than the iPM. The -e increases the timeout period.
 
 ### Unit tests
 This software uses googletest for unit testing.
 
-"scons tests" will build the tests.
-"tests/g_test" will run the tests.
+`scons tests` will build the tests.
+
+`tests/g_test` will run the tests.
 
 ### Deployment
-To deploy the code via a dpkg, run "./build_dpkg"
+To deploy the code via a dpkg, run `./build_dpkg`
