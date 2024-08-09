@@ -14,6 +14,7 @@
 #include "src/measure.h"
 #include "src/status.h"
 #include "src/record.h"
+#include "src/bitresult.h"
 
 naiipm::naiipm():_interactive(false)
 {
@@ -871,7 +872,14 @@ void naiipm::parseData(std::string cmd, int adr)
 
     // parse data
     if (cmd == "BITRESULT?") {
-        parseBitresult(sp);
+        ipmBitresult _bitresult;
+        _bitresult.parse(sp);
+
+        if (Verbose())
+        {
+            std::cout << "iPM temperature (C) = " << bitresult.TEMP
+                << std::endl;
+        }
     }
 
     if (cmd == "RECORD?") {
@@ -916,25 +924,4 @@ void naiipm::parseData(std::string cmd, int adr)
         send_udp(buffer, adr);
     }
 
-}
-
-void naiipm::parseBitresult(uint16_t *sp)
-{
-    // There is a typo in the programming manual. Byte should start at
-    // zeroC
-    float bitStatus = sp[0];
-    float hREFV = sp[1];  // Half-Ref voltage (4.89mV)
-    float VREFV = sp[2];  // VREF voltage (4.89mV)
-    float FIVEV = sp[3];  // +5V voltage (9.78mV)
-    float FIVEVA = sp[4]; // +5VA voltage (9.78mV)
-    float RDV = sp[5];    // Relay Drive Voltage (53.76mV)
-    // bytes 13-14 and 15-16 are reserved
-    float ITVA = sp[8];   // Phase A input test voltage (4.89mV) - reserved
-    float ITVB = sp[9];   // Phase B input test voltage (4.89mV) - reserved
-    float ITVC = sp[10];  // Phase C input test voltage (4.89mV) - reserved
-    float TEMP = sp[11] * 0.1;  // Temperature (0.1C)
-    if (Verbose())
-    {
-        std::cout << "iPM temperature (C) = " << TEMP << std::endl;
-    }
 }

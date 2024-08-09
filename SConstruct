@@ -19,6 +19,7 @@ naiipm.cc
 src/measure.cc
 src/status.cc
 src/record.cc
+src/bitresult.cc
 """)
 
 

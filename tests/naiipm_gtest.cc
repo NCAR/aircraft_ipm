@@ -14,11 +14,6 @@ private:
     void SetUp()
     {
         // Set binary data to some actual data from the iPM
-        unsigned char bitresult[] = {0,0,254,1,255,3,25,2,24,2,88,1,0,0,0,0,
-           39,2,249,1,249,1,253,1};
-        memcpy(ipm.buffer,bitresult,25);
-        ipm.setData("BITRESULT?", 25);
-
         unsigned char record[] = {0, 2, 99, 0, 0, 0, 139, 68, 105, 4, 0, 0, 0,
             0, 0, 0, 0, 0, 209, 0, 155, 4, 209, 0, 155, 4, 0, 0, 0, 0, 69, 2,
             88, 2, 0, 0, 94, 0, 0, 0, 85, 0, 0, 0, 21, 0, 26, 113, 26, 113, 1,
@@ -192,13 +187,6 @@ TEST_F(IpmTest, ipmParseData)
         "sending to port 30101 UDP string RECORD,0,2,99,74007691,0,0,20.90,117.90,20.90,117.90,0.00,0.00,58.10,60.00,0.0000,0.1130,0.0260,0.0850,0.0000,0.0210,2.60,11.30,2.60,11.30,0.10,0.10,154.00,162.60,154.00,161.90,0.00,2.40,142351123\r\n");
 
     ipm.close_udp(atoi(ipm.Address()));
-}
-
-TEST_F(IpmTest, ipmParseBitresult)
-{
-    char *data = ipm.getData("BITRESULT?");
-    uint16_t *sp = (uint16_t *)data;
-    ipm.parseBitresult(sp);
 }
 
 TEST_F(IpmTest, ipmParseAddrInfo)

@@ -17,6 +17,7 @@ naiipm_gtest.cc
 measure_gtest.cc
 status_gtest.cc
 record_gtest.cc
+bitresult_gtest.cc
 """)
 
 env.Program(target = 'g_test', source = sources)
