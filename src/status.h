@@ -2,7 +2,7 @@
  ** 2024, Copyright University Corporation for Atmospheric Research
  ********************************************************************
 */
-#include <arpa/inet.h>
+#include <stdint.h>
 #include <iostream>
 
 #ifndef STATUS_H
