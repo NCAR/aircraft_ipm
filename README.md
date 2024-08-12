@@ -34,7 +34,7 @@ will loop over command as specified in procqueries at the rates specified in mea
 The required python environment is captured in the ipmenv YAML file. To activate the environment:
 
 ```
-> conda activate mtp
+> conda activate ipmenv
 ```
 
 To run with the emulator, run
