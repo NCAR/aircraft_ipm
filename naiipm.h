@@ -57,6 +57,7 @@ class naiipm
         void singleCommand(int fd, std::string cmd, int addr);
         void printMenu();
         bool readInput(int fd);
+        bool clear(int fd, int addr);
         bool init(int fd);
         bool loop(int fd);
 
@@ -79,7 +80,7 @@ class naiipm
         const char* _measureRate;
         const char* _recordPeriod;
         const char* _baudRate;
-	    uint_fast32_t get_baud();
+        uint_fast32_t get_baud();
 
         int _recordCount;
         int _recordFreq;

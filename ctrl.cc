@@ -14,9 +14,6 @@
 #include <fstream>
 #include <cstdio>
 #include <cstring>
-#ifdef __linux__
-    #include <sys/io.h>
-#endif
 
 static naiipm ipm;
 const char *acserver = "192.168.84.2";
@@ -235,11 +232,13 @@ int main(int argc, char * argv[])
     if (ipm.Interactive())
     {
         bool mode  = ipm.setInteractiveMode(fd);
-        // if  mode is True, successfully configured a command line query,
+        // if mode is True, successfully configured a command line query,
         // so request that now. If false, just exit.
         if (mode == true)
         {
-            ipm.singleCommand(fd, ipm.Cmd(), atoi(ipm.Address()));
+            int addr = atoi(ipm.Address());
+            ipm.clear(fd, addr);  // Clear garbage off port
+            ipm.singleCommand(fd, ipm.Cmd(), addr);
         }
         return 0;
     } else {

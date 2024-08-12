@@ -9,6 +9,9 @@
 #include <bitset>
 #include <cstdio>
 #include <regex>
+#ifdef __linux__
+    #include <sys/io.h>
+#endif
 
 #include "naiipm.h"
 #include "src/measure.h"
@@ -69,7 +72,7 @@ naiipm::~naiipm()
 void naiipm::configureSerialPort()
 {
 #ifdef __linux__
-    if ((geteuid() == 0) {  // Running as root
+    if (geteuid() == 0) {  // Running as root
         if (not ioperm(0x1E9, 3, 1)) {  // serial port not configured
             std::cout << "Configuring serial port... " << std::endl;
             outb(0x00, 0x1E9);  // Here order is DATA, ADDRESS, but at command
@@ -86,6 +89,36 @@ void naiipm::configureSerialPort()
 #else
     std::cout << "serial port configuration only works on linux" << std::endl;
 #endif
+}
+
+// When installed on the GV (as opposed to in the lab), on power up
+// the iPM frequently comes up in a hung state (returns nothing in
+// response to sent commands). The working theory is that there is some
+// junk on the port that is corrupting commands being sent. Attempt to
+// clear this by repeatedly sending the ADR and VER? commands up to 10
+// times.
+bool naiipm::clear(int fd, int addr)
+{
+    bool status = true;
+    std::string msg;
+
+    for (int j=0; j < 10; j++)
+    {
+        // ADR should return nothing so can send it to gather junk on line
+        status = setActiveAddress(fd, addr);
+
+        // Query Firmware Version
+        msg = "VER?";
+        if((status = send_command(fd, msg))) {  // success so stop iterating
+            std::cout << "Took " << j << " ADR commands to clear iPM on" <<
+                " init" << std::endl;
+            break;
+        }
+
+        // Wait half a second and try again
+        usleep(500000);  // 0.5 seconds
+    }
+    return status;
 }
 
 //Initialize the iPM device. Returns a verified list of device addresses
@@ -106,34 +139,19 @@ bool naiipm::init(int fd)
             << procqueries(i) << "," << addrport(i)
             << std::endl;
 
-	// When installed on the GV (as opposed to in the lab), on power up
-	// the iPM frequently comes up in a hung state (returns nothing in
-	// response to sent commands). The working theory is that there is some
-	// junk on the port that is corrupting commands being sent. Attempt to
-	// clear this by repeatedly sending the ADR and VER? commands up to 10
-	// times.
-	bool status;
-	for (int j=0; j < 10; j++)
-	{
-            status = setActiveAddress(fd, addr(i));
-
-            // Query Firmware Version
-            msg = "VER?";
-            if((status = send_command(fd, msg))) {  // success so stop iterating
-		std::cout << "Took " << i << " ADR commands to clear iPM on" <<
-		    " init" << std::endl;
-	        break;
-	    }
-
-	    // Wait half a second and try again
-            usleep(500000);  // 0.5 seconds
-	}
+        bool status;
+        status = setActiveAddress(fd, addr(i));
         if(not status)
         {
             std::cout << "Unable to set active address to " << addr(i) <<
-                ". Skipping adress " << addr(i) << "for this iteration" <<
+                ". Skipping address " << addr(i) << "for this iteration" <<
                 std::endl;
             continue;
+        }
+
+        status = clear(fd, addr(i));
+        if (not status) {
+            std::cout << "Unable to clear device" << std::endl;
         }
 
         // Turn Device OFF, wait > 100ms then turn ON to reset state
@@ -312,7 +330,7 @@ void naiipm::send_udp(const char *buf, int i)
     {
         std::cout << "Sending packet to nidas returned error " << errno
             << std::endl;
-	exit(1);
+        exit(1);
     }
 }
 
@@ -833,6 +851,7 @@ bool naiipm::readInput(int fd)
             << std::endl;
         std::cin >> (addr);
         std::cout << "User requested " << cmd << " " << addr << std::endl;
+        clear(fd, atoi(addr.c_str()));
         if (not send_command(fd, (char *)cmdInput, addr)) { return false; }
     } else {
         if (not send_command(fd, (char *)cmdInput)) { return false; }
