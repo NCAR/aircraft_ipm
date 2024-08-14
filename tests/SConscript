@@ -13,6 +13,8 @@ else:
 env.Append(LIBS = ['gtest_main', 'gtest'])
 
 sources = Split("""
+cmd_gtest.cc
+argparse_gtest.cc
 naiipm_gtest.cc
 measure_gtest.cc
 status_gtest.cc

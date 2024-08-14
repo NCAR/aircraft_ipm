@@ -1,5 +1,5 @@
 /********************************************************************
- ** 2023, Copyright University Corporation for Atmospheric Research
+ ** 2024, Copyright University Corporation for Atmospheric Research
  ********************************************************************
 */
 
@@ -14,31 +14,20 @@
 #endif
 
 #include "naiipm.h"
+#include "src/cmd.h"
 #include "src/measure.h"
 #include "src/status.h"
 #include "src/record.h"
 #include "src/bitresult.h"
 
-naiipm::naiipm():_interactive(false)
+ipmArgparse args;
+
+naiipm::naiipm()
 {
+
     // unit conversions
     _deci = 0.1;
     _milli = 0.001;
-
-    // Map message to expected response
-    _ipm_commands =
-    {
-        { "OFF",        "OK\n"},       // Turn Device OFF
-        { "RESET",      "OK\n"},       // Turn Device ON (reset)
-        { "SERNO?",     "^[0-9]{6}\n$"}, // Query Serial number (which changes)
-        { "VER?",       "VER A022(L) 2018-11-13\n"}, // Query Firmware Ver
-        { "TEST",       "OK\n"},       // Execute build-in self test
-        { "BITRESULT?", "24\n"},       // Query self test result
-        { "ADR",        ""},           // Device Address Selection
-        { "MEASURE?",   "34\n"},       // Device Measurement
-        { "STATUS?",    "12\n"},       // Device Status
-        { "RECORD?",    "68\n"},       // Device Statistics
-    };
 
     // Initialize the binary data map
     _ipm_data["BITRESULT?"] = _bitdata;   // Query self test result
@@ -49,46 +38,10 @@ naiipm::naiipm():_interactive(false)
     _recordCount = 0;
     _badData = 0;
 
-    // Set defaults
-    setScaleFlag(1);  // turn on scaling by default
-    const char *baud = "115200";
-    setBaud(baud);
-    const char *device = "/dev/ttyS0";
-    setDevice(device);
-    const char *naddr = "1";  // one address by default
-    setNumAddr(naddr);
-    const char *undefAddr = "-1";
-    setAddress(undefAddr);
-    setCmd("");
 }
 
 naiipm::~naiipm()
 {
-}
-
-// If on a linux machine and outb function exists, configure serial port
-// This command only works if this program is run with sudo. Since we do
-// not want to run with sudo in general, exit after this command is run.
-void naiipm::configureSerialPort()
-{
-#ifdef __linux__
-    if (geteuid() == 0) {  // Running as root
-        if (not ioperm(0x1E9, 3, 1)) {  // serial port not configured
-            std::cout << "Configuring serial port... " << std::endl;
-            outb(0x00, 0x1E9);  // Here order is DATA, ADDRESS, but at command
-            outb(0x3E, 0x1EA);  // line outb takes address data eg.
-                                // sudo outb 0x1E9 0x00
-            std::cout << " done." << std::endl;
-        } else {
-            std::cout << "Serial port already configured. Nothing to do"
-              << std::endl;
-        }
-    } else {
-        std::cout << "Must be root to configure serial port" << std::endl;
-    }
-#else
-    std::cout << "serial port configuration only works on linux" << std::endl;
-#endif
 }
 
 // When installed on the GV (as opposed to in the lab), on power up
@@ -130,26 +83,26 @@ bool naiipm::init(int fd)
     flush(fd);
 
     // Verify device existence at all addresses
-    std::cout << "This ipm should have " << numAddr() << " active address(es)"
+    std::cout << "This ipm should have " << args.numAddr() << " active address(es)"
         << std::endl;
-    for (int i=0; i < numAddr(); i++)
+    for (int i=0; i < args.numAddr(); i++)
     {
         std::string msg;
-        std::cout << "Info for address " << i << " is " << addr(i) << ","
-            << procqueries(i) << "," << addrport(i)
+        std::cout << "Info for address " << i << " is " << args.Addr(i) << ","
+            << args.Procqueries(i) << "," << args.Addrport(i)
             << std::endl;
 
         bool status;
-        status = setActiveAddress(fd, addr(i));
+        status = setActiveAddress(fd, args.Addr(i));
         if(not status)
         {
-            std::cout << "Unable to set active address to " << addr(i) <<
-                ". Skipping address " << addr(i) << "for this iteration" <<
+            std::cout << "Unable to set active address to " << args.Addr(i) <<
+                ". Skipping address " << args.Addr(i) << "for this iteration" <<
                 std::endl;
             continue;
         }
 
-        status = clear(fd, addr(i));
+        status = clear(fd, args.Addr(i));
         if (not status) {
             std::cout << "Unable to clear device" << std::endl;
         }
@@ -184,7 +137,7 @@ bool naiipm::init(int fd)
         parseData(msg, i);
     }
 
-    if (_numaddr == 0)
+    if (args.numAddr() == 0)
     {
         // if setting all active addresses fails on init, wait 5s and close
         // program so nidas can restart it.
@@ -201,28 +154,28 @@ bool naiipm::init(int fd)
 // i is index of addrinfo string, not actual address to be removed
 void naiipm::rmAddr(int i)
 {
-    std::cout << "Removing address " << addr(i) << " from active address list"
-        << std::endl;
-    for (int j=i; j<_numaddr; j++) {
-        _addrinfo[j] = _addrinfo[j+1];
-        _addr[j] = _addr[j+1];
-        _procqueries[j] = _procqueries[j+1];
-        _addrport[j] = _addrport[j+1];
+    std::cout << "Removing address " << args.Addr(i) <<
+        " from active address list" << std::endl;
+    for (int j=i; j<args.numAddr(); j++) {
+        args.updateAddrInfo(j, args.addrInfo(j+1));
+        args.updateAddr(j, args.Addr(j+1));
+        args.updateProcqueries(j, args.Procqueries(j+1));
+        args.updateAddrPort(j, args.Addrport(j+1));
     }
-    _numaddr =  _numaddr - 1;
+    args.updateNumAddr(args.numAddr() - 1);
 }
 
 // Establish connection to iPM
-int naiipm::open_port(const char *device)
+int naiipm::open_port()
 {
     int fd; // file description for the serial port
     struct termios port_settings; // structure to store the port settings in
 
-    fd = open(Device(), O_RDWR | O_NOCTTY | O_NONBLOCK); // read/write
+    fd = open(args.Device(), O_RDWR | O_NOCTTY | O_NONBLOCK); // read/write
 
     if (fd == -1) // if open is unsuccessful
     {
-        std::cout << "open_port: Unable to open " << device << std::endl;
+        std::cout << "open_port: Unable to open " << args.Device() << std::endl;
         exit(1);
     }
     else
@@ -230,7 +183,7 @@ int naiipm::open_port(const char *device)
         // Confirm we are pointing to a serial device
         if (!isatty(fd))
         {
-            std::cout << device << " is not a serial device" << std::endl;
+            std::cout << args.Device() << " is not a serial device" << std::endl;
             close_port(fd);
             exit(1);
         }
@@ -270,9 +223,9 @@ int naiipm::open_port(const char *device)
             std::cout << "Failed to set serial attributes" << std::endl;
         }
 
-        if (Verbose())
+        if (args.Verbose())
         {
-            std::cout << "Port for device " << device << " is open."
+            std::cout << "Port for device " << args.Device() << " is open."
                 << std::endl;
         }
     }
@@ -283,12 +236,13 @@ int naiipm::open_port(const char *device)
 // Convert baud rate to value required by cfsetspeed command
 uint_fast32_t naiipm::get_baud()
 {
-    switch (atoi(_baudRate)) {
+    switch (atoi(args.BaudRate())) {
         case 115200:
             return B115200;
         default:
-            std::cout << "Unknown baud rate " << _baudRate << "If rate is valid"
-                " please update get_baud() function" << std::endl;
+            std::cout << "Unknown baud rate " << args.BaudRate() <<
+                "If rate is valid please update get_baud() function"
+                << std::endl;
             exit(1);
     }
 }
@@ -302,7 +256,7 @@ void naiipm::close_port(int fd)
 // Each address needs it's own socket so it can send over it's own port.
 void naiipm::open_udp(const char *ip)
 {
-    for (int i=0; i<numAddr(); i++)
+    for (int i=0; i<args.numAddr(); i++)
     {
         //  AF_INET for IPv4/ AF_INET6 for IPv6
         //  SOCK_STREAM for TCP / SOCK_DGRAM for UDP
@@ -315,7 +269,7 @@ void naiipm::open_udp(const char *ip)
         }
         memset(&_servaddr[i], 0, sizeof(_servaddr[i]));
         _servaddr[i].sin_family = AF_INET;
-        _servaddr[i].sin_port = htons(addrport(i));
+        _servaddr[i].sin_port = htons(args.Addrport(i));
         _servaddr[i].sin_addr.s_addr = inet_addr(ip);
     }
 
@@ -324,7 +278,8 @@ void naiipm::open_udp(const char *ip)
 // Send a UDP message to nidas
 void naiipm::send_udp(const char *buf, int i)
 {
-    std::cout << "sending to port " << addrport(i) << " UDP string " << buf;
+    std::cout << "sending to port " << args.Addrport(i) << " UDP string "
+        << buf;  // string already ends in /r/n so don't add std::endl here.
     if (sendto(_sock[i], (const char *)buf, strlen(buf), 0,
             (const struct sockaddr *) &_servaddr[i], sizeof(_servaddr[i])) == -1)
     {
@@ -339,52 +294,13 @@ void naiipm::close_udp(int adr)
 {
     if (adr == -1)
     {
-        for (int i=0; i<numAddr(); i++)
+        for (int i=0; i<args.numAddr(); i++)
         {
             close(_sock[i]);
         }
     } else {
         close(_sock[adr]);
     }
-}
-
-// Parse the addrInfo block from the command line
-// Block contains addr,procqueries,port
-bool naiipm::parse_addrInfo(int i)
-{
-    char *addrinfo = addrInfo(i);
-    // Validate address info block with simple comma count
-    std::string s = (std::string)addrinfo;
-    if (std::count(s.begin(), s.end(), ',') != 2)
-    {
-        return false;
-    }
-    if (Verbose())
-    {
-        std::cout << "Parsing info block " << addrinfo << std::endl;
-    }
-    char *ptr = strtok(addrinfo, ",");
-    setAddr(i, ptr);
-    if (Verbose())
-    {
-        std::cout << "addr: " << addr(i) << std::endl;
-    }
-
-    ptr = strtok(NULL, ",");
-    setProcqueries(i, ptr);
-    if (Verbose())
-    {
-        std::cout << "procqueries: " << procqueries(i) << std::endl;
-    }
-
-    ptr = strtok(NULL, ",");
-    setAddrPort(i, ptr);
-    if (Verbose())
-    {
-        std::cout << "addrport: " << addrport(i) << std::endl;
-    }
-
-    return true;
 }
 
 // Set active address
@@ -405,7 +321,7 @@ bool naiipm::setActiveAddress(int fd, int addr)
 // after send 600 MEASURE/STATUS commands.
 void naiipm::setRecordFreq()
 {
-     _recordFreq = (int)(atoi(_recordPeriod)*60.0) * atoi(_measureRate);
+    _recordFreq = (int)(atoi(args.recordPeriod())*60.0) * atoi(args.measureRate());
 }
 
 
@@ -416,7 +332,7 @@ bool naiipm::loop(int fd)
 
     _recordCount++;
 
-    for (int i=0; i < numAddr(); i++)
+    for (int i=0; i < args.numAddr(); i++)
     {
 
         // ‘procqueries’ is an integer representation of 3-bit Boolean
@@ -425,15 +341,15 @@ bool naiipm::loop(int fd)
         // file.
         //     d’3 (b’011) indicates that MEASURE+STATUS are processed.
         //     d’5 (b’101) indicates that RECORD+STATUS are processed.
-        int procq = procqueries(i);
+        int procq = args.Procqueries(i);
         std::bitset<4> x('\0' + procq);
-        if (Verbose())
+        if (args.Verbose())
         {
             std::cout << ": [" << procq << "] " << '\0' + procq << " : " << x
                 << std::endl;
         }
 
-        if (setActiveAddress(fd, addr(i)))
+        if (setActiveAddress(fd, args.Addr(i)))
         {
             // Per software requirements, MEASURE? Is queried first, followed
             // by STATUS?, followed by RECORD?
@@ -479,7 +395,7 @@ void naiipm::sleep()
 {
     // TBD: Will likely need to adjust this when the iPM is mounted on the
     // aircraft.
-    _sleeptime = ((1000000 / atoi(_measureRate)) - 200000);  // usec
+    _sleeptime = ((1000000 / atoi(args.measureRate())) - 200000);  // usec
     usleep(_sleeptime);
 }
 
@@ -498,7 +414,7 @@ void naiipm::get_response(int fd, int len, bool bin)
     int ret;
     fd_set set;
     buffer[0] = '\0';
-    if (Verbose())
+    if (args.Verbose())
     {
         std::cout << "Expected response length " << len << std::endl;
     }
@@ -513,7 +429,7 @@ void naiipm::get_response(int fd, int len, bool bin)
         // During operation, the iPM timeout should be 100ms. When developing
         // using the Python emulator, this is too short, so add a second.
         int tout;
-        if (Emulate())
+        if (args.Emulate())
         {
             tout = 1;  // Add a second to timeout when developing
         } else
@@ -548,7 +464,7 @@ void naiipm::get_response(int fd, int len, bool bin)
         {
             std::bitset<8> x(c);
             unsigned int i = (unsigned char)c;
-            if (Verbose())
+            if (args.Verbose())
             {
               // If c is not a printable character, for printing purposes
               // replace it with a null string terminator"
@@ -630,10 +546,12 @@ void naiipm::trackBadData()
     }
 }
 // send a single command entered on the command line
-void naiipm::singleCommand(int fd, std::string cmd, int addr)
+void naiipm::singleCommand(int fd)
 {
+    int addr = atoi(args.Address());
     setActiveAddress(fd, addr);
-    if (Verbose())
+    std::string cmd = args.Cmd();
+    if (args.Verbose())
     {
         std::cout << "Sending command " << cmd << std::endl;
     }
@@ -645,18 +563,18 @@ void naiipm::singleCommand(int fd, std::string cmd, int addr)
 bool naiipm::send_command(int fd, std::string msg, std::string msgarg)
 {
     // Confirm command is in list of acceptable command
-    if (not verify(msg)) {return false;}
+    if (not commands.verify(msg)) {return false;}
 
-    if (Verbose())
+    if (args.Verbose())
     {
         std::cout << "Got message " << msg << std::endl;
     }
 
     // Find expected response for this message
-    auto response = _ipm_commands.find(msg);
+    auto response = commands.response(msg);
     std::string expected_response = response->second;
 
-    if (Verbose())
+    if (args.Verbose())
     {
         std::cout << "Expect response " << expected_response << std::endl;
     }
@@ -667,7 +585,7 @@ bool naiipm::send_command(int fd, std::string msg, std::string msgarg)
         msg.append(' ' + msgarg);
     }
     std::string sendmsg = msg + "\n";  // Add linefeed to end of command
-    if (Verbose())
+    if (args.Verbose())
     {
         std::cout << "Sending message " << sendmsg << std::endl;
         std::cout << "of length " << sendmsg.length() << std::endl;
@@ -677,7 +595,7 @@ bool naiipm::send_command(int fd, std::string msg, std::string msgarg)
     {
         std::cout << errno << std::endl;
     }
-    if (Verbose())
+    if (args.Verbose())
     {
         std::cout << "Write completed" << std::endl;
     }
@@ -689,7 +607,7 @@ bool naiipm::send_command(int fd, std::string msg, std::string msgarg)
         // 7.
         // Get response from ipm
         get_response(fd, 7, false);
-        if (Verbose())
+        if (args.Verbose())
         {
             std::cout << "Received " << buffer << std::endl;
         }
@@ -707,7 +625,7 @@ bool naiipm::send_command(int fd, std::string msg, std::string msgarg)
     {
         // Get response from ipm
         get_response(fd, int(expected_response.length()), false);
-        if (Verbose())
+        if (args.Verbose())
         {
             std::cout << "Received " << buffer << std::endl;
         }
@@ -728,7 +646,7 @@ bool naiipm::send_command(int fd, std::string msg, std::string msgarg)
     if (_ipm_data.find(msg) != _ipm_data.end()) // cmd returns data
     {
         int binlen = std::stoi(buffer);
-        if (Verbose())
+        if (args.Verbose())
         {
             std::cout << "Now get " << binlen << " bytes" << std::endl;
         }
@@ -750,22 +668,22 @@ bool naiipm::setInteractiveMode(int fd)
     // If giving address and query on command line, ensure both exist
     // and are valid;
     // got -a but not -c
-    if (atoi(Address()) != -1 and strcmp(Cmd(),"") == 0)
+    if (atoi(args.Address()) != -1 and strcmp(args.Cmd(),"") == 0)
     {
-        verify(Cmd());
+        commands.verify(args.Cmd());
         return false;
     }
     // got -c but not -a
-    if (atoi(Address()) == -1 and strcmp(Cmd(),"") != 0)
+    if (atoi(args.Address()) == -1 and strcmp(args.Cmd(),"") != 0)
     {
         std::cout << "Setting default address of 0" << std::endl;
-        setAddress("0");
+        args.setAddress("0");
         return true;
     }
 
     // iPM command (-c) and address (-a) both given on command line
     // so send query to iPM
-    if (atoi(Address()) != -1 and strcmp(Cmd(),"") != 0)
+    if (atoi(args.Address()) != -1 and strcmp(args.Cmd(),"") != 0)
     {
         return true;
     }
@@ -774,7 +692,7 @@ bool naiipm::setInteractiveMode(int fd)
     bool status = true;
     while (status == true)
     {
-        printMenu();
+        commands.printMenu();
         status = readInput(fd);
     }
 
@@ -791,38 +709,13 @@ void naiipm::flush(int fd)
 
 }
 
-// List use options in interactive mode
-void naiipm::printMenu()
-{
-    std::cout << "=========================================" << std::endl;
-    std::cout << "Type one of the following iPM commands or" << std::endl;
-    std::cout << "enter 'q' to quit" << std::endl;
-    std::cout << "=========================================" << std::endl;
-    for (auto msg : _ipm_commands) {
-        std::cout << msg.first << std::endl;
-    }
-}
-
-bool naiipm::verify(std::string cmd)
-{
-    // Confirm command is in list of acceptable command
-    if (not _ipm_commands.count(cmd))
-    {
-        std::cout << "Command " << cmd << " is invalid. Please enter a " <<
-            "valid command" << std::endl;
-        return false;
-    } else {
-        return true;
-    }
-}
-
 bool naiipm::readInput(int fd)
 {
     std::string cmd = "";
 
     // Request user input
     std::cin >> (cmd);
-    if (Verbose())
+    if (args.Verbose())
     {
         std::cout << "User requested " << cmd << std::endl;
     }
@@ -830,7 +723,7 @@ bool naiipm::readInput(int fd)
     // Catch exit request
     if (cmd.compare("q") == 0)
     {
-        if (Verbose())
+        if (args.Verbose())
         {
             std::cout << "Exiting..." << std::endl;
         }
@@ -839,7 +732,7 @@ bool naiipm::readInput(int fd)
 
     // Confirm command is in list of acceptable command
     // If it is not, ask user to enter another command
-    if (not verify(cmd)) {return true;}
+    if (not commands.verify(cmd)) {return true;}
 
     // If command is valid, send to ipm
     const char *cmdInput = cmd.c_str();
@@ -874,11 +767,12 @@ void naiipm::parse_binary(std::string cmd)
 
 void naiipm::parseData(std::string cmd, int adr)
 {
-    if (Verbose())
+    if (args.Verbose())
     {
         std::cout << '{' << cmd << '}' << std::endl;
-        std::cout << "In parseData: Info for address " << adr << " is " << addr(adr) << ","
-            << procqueries(adr) << "," << addrport(adr) << std::endl;
+        std::cout << "In parseData: Info for address " << adr << " is " <<
+            args.Addr(adr) << "," << args.Procqueries(adr) << "," <<
+            args.Addrport(adr) << std::endl;
     }
     // retrieve binary data
     char* data = getData(cmd); // data content
@@ -894,7 +788,7 @@ void naiipm::parseData(std::string cmd, int adr)
         ipmBitresult _bitresult;
         _bitresult.parse(sp);
 
-        if (Verbose())
+        if (args.Verbose())
         {
             std::cout << "iPM temperature (C) = " << bitresult.TEMP
                 << std::endl;
@@ -914,28 +808,28 @@ void naiipm::parseData(std::string cmd, int adr)
         // data counter:
         // trackBadData();
 
-        if (Verbose())
+        if (args.Verbose())
         {
             std::cout << record.TIME/60000 << " minutes since power-up"
                 << std::endl;
         }
 
-        _record.createUDP(buffer, scaleflag());
+        _record.createUDP(buffer, args.scaleflag());
     }
 
     if (cmd == "MEASURE?") {
         ipmMeasure _measure;
         _measure.parse(cp, sp);
-        _measure.createUDP(buffer, scaleflag());
+        _measure.createUDP(buffer, args.scaleflag());
     }
 
     if (cmd == "STATUS?") {
         ipmStatus _status;
         _status.parse(cp, sp);
-        _status.createUDP(buffer, scaleflag(), _badData);
+        _status.createUDP(buffer, args.scaleflag(), _badData);
     }
 
-    if (Interactive())
+    if (args.Interactive())
     {
         std::cout << buffer << std::endl;
     } else
