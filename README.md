@@ -33,7 +33,7 @@ will loop over command as specified in procqueries at the rates specified in mea
 ### Running with the emulator
 The required python environment is captured in the ipmenv YAML file. The first time you use the environment, you will have to create it:
 ```
-conda env create -f ipmenv.yml
+> conda env create -f ipmenv.yml
 ```
 
 To activate the environment:
@@ -42,10 +42,11 @@ To activate the environment:
 > conda activate ipmenv
 ```
 
+Depending on your environment, you may also need to install other packages such as socat: eg `brew install socat` on Mac.
 To run with the emulator, run
 
 ```
-python3 emulate.py
+> python3 emulate.py
 ```
 
 In a separate window run one of the `ipm_ctrl` commands above and append `-e` to the command. The emulator responds more slowly than the iPM. The -e increases the timeout period.
