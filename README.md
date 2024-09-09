@@ -31,7 +31,12 @@ will loop over command as specified in procqueries at the rates specified in mea
 ## Developmemnt
 
 ### Running with the emulator
-The required python environment is captured in the ipmenv YAML file. To activate the environment:
+The required python environment is captured in the ipmenv YAML file. The first time you use the environment, you will have to create it:
+```
+conda env create -f ipmenv.yml
+```
+
+To activate the environment:
 
 ```
 > conda activate ipmenv
