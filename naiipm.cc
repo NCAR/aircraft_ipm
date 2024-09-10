@@ -787,12 +787,14 @@ void naiipm::parseData(std::string cmd, int adr)
     if (cmd == "BITRESULT?") {
         ipmBitresult _bitresult;
         _bitresult.parse(sp);
+        _bitresult.createUDP(buffer, args.scaleflag());
 
         if (args.Verbose())
         {
-            std::cout << "iPM temperature (C) = " << bitresult.TEMP
-                << std::endl;
+            std::cout << "iPM temperature (C) = "
+                << _bitresult.getTemperature() << std::endl;
         }
+
     }
 
     if (cmd == "RECORD?") {
@@ -810,8 +812,8 @@ void naiipm::parseData(std::string cmd, int adr)
 
         if (args.Verbose())
         {
-            std::cout << record.TIME/60000 << " minutes since power-up"
-                << std::endl;
+            std::cout << _record.getTimeSincePowerup()
+                << " minutes since power-up" << std::endl;
         }
 
         _record.createUDP(buffer, args.scaleflag());

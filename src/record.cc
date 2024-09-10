@@ -102,6 +102,11 @@ void ipmRecord::createUDP(char *buffer, int scaleflag)
     }
 }
 
+float ipmRecord::getTimeSincePowerup()
+{
+    return record.TIME/60000;
+}
+
 /********************************************************************
  ** CRC validation
  ** Compare CRC to Reversed 0xEDB88320 at

@@ -31,3 +31,28 @@ void ipmBitresult::parse(uint16_t *sp)
     bitresult.ITVC = sp[10];  // Phase C input test voltage (4.89mV) - reserved
     bitresult.TEMP = sp[11] * _deci;  // Temperature (0.1C)
 }
+
+void ipmBitresult::createUDP(char *buffer, int scaleflag)
+{
+    if (scaleflag >= 1) {
+        snprintf(buffer, 255, "BITRESULT,%.2f,%.2f,%.2f,%.2f,%.2f,%.2f,%.2f,"
+             "%.2f,%.2f,%.2f\r\n", (float) bitresult.bitStatus,
+             (float) bitresult.hREFV, (float) bitresult.VREFV,
+             (float) bitresult.FIVEV, (float) bitresult.FIVEVA,
+             (float) bitresult.RDV, (float) bitresult.ITVA,
+             (float) bitresult.ITVB, (float) bitresult.ITVC,
+             bitresult.TEMP * _deci);
+             ;
+    } else {
+        snprintf(buffer, 255, "BITRESULT,%04x,%04x,%04x,%04x,%04x,%04x,%04x,"
+             "%04x,%04x,%04x\r\n", bitresult.bitStatus,
+             bitresult.hREFV, bitresult.VREFV, bitresult.FIVEV,
+             bitresult.FIVEVA, bitresult.RDV, bitresult.ITVA,
+             bitresult.ITVB, bitresult.ITVC, bitresult.TEMP);
+    }
+}
+
+float ipmBitresult::getTemperature()
+{
+    return bitresult.TEMP * _deci;
+}
