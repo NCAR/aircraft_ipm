@@ -36,11 +36,11 @@ TEST_F(StatusTest, Parse)
     uint8_t *cp = (uint8_t *)data;
     uint16_t *sp = (uint16_t *)data;
     _status.parse(cp, sp);
-    EXPECT_EQ(status.OPSTATE,2);
-    EXPECT_EQ(status.POWEROK,1);
-    EXPECT_EQ(status.TRIPFLAGS,0);
-    EXPECT_EQ(status.CAUTIONFLAGS,0);
-    EXPECT_EQ(status.BITSTAT,0);
+    EXPECT_EQ(_status.status.OPSTATE,2);
+    EXPECT_EQ(_status.status.POWEROK,1);
+    EXPECT_EQ(_status.status.TRIPFLAGS,0);
+    EXPECT_EQ(_status.status.CAUTIONFLAGS,0);
+    EXPECT_EQ(_status.status.BITSTAT,0);
 }
 
 /********************************************************************

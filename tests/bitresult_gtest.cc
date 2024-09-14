@@ -35,14 +35,14 @@ TEST_F(BitresultTest, Parse)
     char *data = &buffer[0];
     uint16_t *sp = (uint16_t *)data;
     _bitresult.parse(sp);
-    EXPECT_EQ(bitresult.bitStatus, 0);
-    EXPECT_EQ(bitresult.hREFV, 510);
-    EXPECT_EQ(bitresult.VREFV, 1023);
-    EXPECT_EQ(bitresult.FIVEV, 537);
-    EXPECT_EQ(bitresult.FIVEVA, 536);
-    EXPECT_EQ(bitresult.RDV, 344);
-    EXPECT_EQ(bitresult.ITVA, 551);
-    EXPECT_EQ(bitresult.ITVB, 505);
-    EXPECT_EQ(bitresult.ITVC, 505);
-    EXPECT_FLOAT_EQ(bitresult.TEMP,50.9);
+    EXPECT_EQ(_bitresult.bitresult.bitStatus, 0);
+    EXPECT_EQ(_bitresult.bitresult.hREFV, 510);
+    EXPECT_EQ(_bitresult.bitresult.VREFV, 1023);
+    EXPECT_EQ(_bitresult.bitresult.FIVEV, 537);
+    EXPECT_EQ(_bitresult.bitresult.FIVEVA, 536);
+    EXPECT_EQ(_bitresult.bitresult.RDV, 344);
+    EXPECT_EQ(_bitresult.bitresult.ITVA, 551);
+    EXPECT_EQ(_bitresult.bitresult.ITVB, 505);
+    EXPECT_EQ(_bitresult.bitresult.ITVC, 505);
+    EXPECT_EQ(_bitresult.bitresult.TEMP,509);
 }

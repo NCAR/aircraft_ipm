@@ -39,24 +39,24 @@ TEST_F(MeasureTest, Parse)
     uint8_t *cp = (uint8_t *)data;
     uint16_t *sp = (uint16_t *)data;
     _measure.parse(cp, sp);
-    EXPECT_EQ(measure.FREQ,600);
-    EXPECT_EQ(measure.TEMP,517);
-    EXPECT_EQ(measure.VRMSA,1163);
-    EXPECT_EQ(measure.VRMSB,1163);
-    EXPECT_EQ(measure.VRMSC,0);
-    EXPECT_EQ(measure.VPKA,1540);
-    EXPECT_EQ(measure.VPKB,1532);
-    EXPECT_EQ(measure.VPKC,0);
-    EXPECT_EQ(measure.VDCA,28);
-    EXPECT_EQ(measure.VDCB,28);
-    EXPECT_EQ(measure.VDCC,9);
-    EXPECT_EQ(measure.PHA,3529);
-    EXPECT_EQ(measure.PHB,1736);
-    EXPECT_EQ(measure.PHC,1799);
-    EXPECT_EQ(measure.THDA,27);
-    EXPECT_EQ(measure.THDB,27);
-    EXPECT_EQ(measure.THDC,1);
-    EXPECT_EQ(measure.POWEROK,1);
+    EXPECT_EQ(_measure.measure.FREQ,600);
+    EXPECT_EQ(_measure.measure.TEMP,517);
+    EXPECT_EQ(_measure.measure.VRMSA,1163);
+    EXPECT_EQ(_measure.measure.VRMSB,1163);
+    EXPECT_EQ(_measure.measure.VRMSC,0);
+    EXPECT_EQ(_measure.measure.VPKA,1540);
+    EXPECT_EQ(_measure.measure.VPKB,1532);
+    EXPECT_EQ(_measure.measure.VPKC,0);
+    EXPECT_EQ(_measure.measure.VDCA,28);
+    EXPECT_EQ(_measure.measure.VDCB,28);
+    EXPECT_EQ(_measure.measure.VDCC,9);
+    EXPECT_EQ(_measure.measure.PHA,3529);
+    EXPECT_EQ(_measure.measure.PHB,1736);
+    EXPECT_EQ(_measure.measure.PHC,1799);
+    EXPECT_EQ(_measure.measure.THDA,27);
+    EXPECT_EQ(_measure.measure.THDB,27);
+    EXPECT_EQ(_measure.measure.THDC,1);
+    EXPECT_EQ(_measure.measure.POWEROK,1);
 }
 
 /********************************************************************

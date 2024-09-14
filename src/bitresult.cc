@@ -29,7 +29,7 @@ void ipmBitresult::parse(uint16_t *sp)
     bitresult.ITVA = sp[8];   // Phase A input test voltage (4.89mV) - reserved
     bitresult.ITVB = sp[9];   // Phase B input test voltage (4.89mV) - reserved
     bitresult.ITVC = sp[10];  // Phase C input test voltage (4.89mV) - reserved
-    bitresult.TEMP = sp[11] * _deci;  // Temperature (0.1C)
+    bitresult.TEMP = sp[11];  // Temperature (0.1C)
 }
 
 void ipmBitresult::createUDP(char *buffer, int scaleflag)
