@@ -33,7 +33,7 @@ private:
  ********************************************************************
 */
 
-TEST_F(CmdTest, ipmVerify)
+TEST_F(CmdTest, ipmVerifyInvalid)
 {
     testing::internal::CaptureStdout();
 
@@ -42,4 +42,15 @@ TEST_F(CmdTest, ipmVerify)
     commands.verify(_args.Cmd());
     EXPECT_EQ(testing::internal::GetCapturedStdout(),
         "Command REC is invalid. Please enter a valid command\n");
+}
+
+TEST_F(CmdTest, ipmVerifyValid)
+{
+    testing::internal::CaptureStdout();
+
+    // Invalid iPM query
+    _args.setCmd("RECORD?");
+    commands.verify(_args.Cmd());
+    EXPECT_EQ(testing::internal::GetCapturedStdout(),
+        "");
 }

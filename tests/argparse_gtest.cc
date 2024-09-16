@@ -71,17 +71,11 @@ TEST_F(ArgTest, ParseAddrInfo)
  ********************************************************************
 */
 
-TEST_F(ArgTest, SetGetIpmPort)
+TEST_F(ArgTest, SetGetIpmDevice)
 {
     // device iPM is connected to
     _args.setDevice("/dev/ttyS0");
     EXPECT_EQ(_args.Device(), "/dev/ttyS0");
-}
-
-TEST_F(ArgTest, SetGetStatusPort)
-{
-    // port to send status messages to
-    // Not yet implemented
 }
 
 TEST_F(ArgTest, SetGetMeasureRate)
