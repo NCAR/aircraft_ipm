@@ -93,3 +93,12 @@ TEST_F(RecordTest, CreateUDP)
     str = buffer;
     EXPECT_EQ(str,"RECORD,00,02,00000063,0469448b,00000000,00000000,00d1,049b,00d1,049b,0000,0000,0245,0258,0000,0071,001a,0055,0000,0015,1a,71,1a,71,01,01,0604,065a,0604,0653,0000,0018,087c1b13\r\n");
 }
+
+/********************************************************************
+ ** Test retrieving time since iPM powerup
+ ********************************************************************
+*/
+TEST_F(RecordTest, GetTimeSincePowerup)
+{
+    EXPECT_FLOAT_EQ(_record.getTimeSincePowerup(), 1233);
+}

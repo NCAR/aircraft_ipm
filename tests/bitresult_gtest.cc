@@ -63,3 +63,12 @@ TEST_F(BitresultTest, CreateUDP)
     str = buffer;
     EXPECT_EQ(str,"BITRESULT,0000,01fe,03ff,0219,0218,0158,0227,01f9,01f9,01fd\r\n");
 }
+
+/********************************************************************
+ ** Test retrieving iPM temperature
+ ********************************************************************
+*/
+TEST_F(BitresultTest, GetTemperature)
+{
+    EXPECT_FLOAT_EQ(_bitresult.getTemperature(),50.9);
+}
