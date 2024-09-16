@@ -46,3 +46,20 @@ TEST_F(BitresultTest, Parse)
     EXPECT_EQ(_bitresult.bitresult.ITVC, 505);
     EXPECT_EQ(_bitresult.bitresult.TEMP,509);
 }
+
+/********************************************************************
+ ** Test creating UDP packet
+ ********************************************************************
+*/
+TEST_F(BitresultTest, CreateUDP)
+{
+    std::string str;
+
+    _bitresult.createUDP(buffer, 1); // scaling turned on
+    str = buffer;
+    EXPECT_EQ(str,"BITRESULT,0.00,510.00,1023.00,537.00,536.00,344.00,551.00,505.00,505.00,50.90\r\n");
+
+    _bitresult.createUDP(buffer, 0); // scaling turned off
+    str = buffer;
+    EXPECT_EQ(str,"BITRESULT,0000,01fe,03ff,0219,0218,0158,0227,01f9,01f9,01fd\r\n");
+}
