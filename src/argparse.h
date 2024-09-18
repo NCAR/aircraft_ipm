@@ -68,6 +68,9 @@ class ipmArgparse
         void setInteractive() { _interactive = true; }
         bool Interactive()    { return _interactive; };
 
+        void setSilent(bool state) { _silent = state; }
+        bool Silent()    { return _silent; }
+
         void setVerbose() { _verbose = true; }
         bool Verbose()    { return _verbose; };
 
@@ -95,6 +98,7 @@ class ipmArgparse
         const char*  _address;
         const char* _cmd;
         bool _interactive;
+        bool _silent = false;
         bool _verbose;
         int _scaleflag;
         bool _emulate;

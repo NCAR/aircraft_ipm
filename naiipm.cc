@@ -55,6 +55,9 @@ bool naiipm::clear(int fd, int addr)
     bool status = true;
     std::string msg;
 
+    // Set silent so don't print VER output when clearing.
+    args.setSilent(true);
+
     for (int j=0; j < 10; j++)
     {
         // ADR should return nothing so can send it to gather junk on line
@@ -71,6 +74,10 @@ bool naiipm::clear(int fd, int addr)
         // Wait half a second and try again
         usleep(500000);  // 0.5 seconds
     }
+
+    // Turn output back on
+    args.setSilent(false);
+
     return status;
 }
 
@@ -619,6 +626,11 @@ bool naiipm::send_command(int fd, std::string msg, std::string msgarg)
             std::cout << "Device command " << msg << " did not return "
                 << "expected response " << expected_response <<  std::endl;
             return false;  // command failed
+        } else {
+            if (args.Interactive())
+            {
+                std::cout << buffer << std::endl;
+            }
         }
     }
     else
@@ -637,6 +649,11 @@ bool naiipm::send_command(int fd, std::string msg, std::string msgarg)
             std::cout << "Device command " << msg << " did not return "
                 << "expected response " << expected_response << std::endl;
             return false;  // command failed
+        } else {
+            if (msg == "VER?" && args.Interactive() && not args.Silent())
+            {
+                std::cout << buffer << std::endl;
+            }
         }
     }
 

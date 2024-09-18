@@ -120,6 +120,17 @@ TEST_F(ArgTest, SetGetInteractive)
     EXPECT_EQ(_args.Interactive(), true);
 }
 
+TEST_F(ArgTest, SetGetSilent)
+{
+    // Silent mode - don't print output when in interactive mode
+    _args.setSilent(true);
+    EXPECT_EQ(_args.Silent(), true);
+
+    // Print mode
+    _args.setSilent(false);
+    EXPECT_EQ(_args.Silent(), false);
+}
+
 TEST_F(ArgTest, SetGetAddress)
 {
     // address from command line in interactive mode
