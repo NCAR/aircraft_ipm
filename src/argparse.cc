@@ -12,7 +12,7 @@ ipmArgparse::ipmArgparse():_interactive(false)
     const char *device = "/dev/ttyS0";
     setDevice(device);
     setScaleFlag(1);  // turn on scaling by default
-    const char *baud = "115200";
+    const char *baud = "57600";
     setBaud(baud);
     const char *naddr = "1";  // one address by default
     setNumAddr(naddr);
@@ -32,7 +32,7 @@ void ipmArgparse::Usage()
         "\t-D device\tiPM connection device (Default:/dev/ttyS0)\n"
         "\t-m measurerate\tSTATUS & MEASURE collection rate (hz)\n"
         "\t-r recordperiod\tperiod of RECORD queries (minutes)\n"
-        "\t-b baudrate\tbaud rate (Default:115200)\n"
+        "\t-b baudrate\tbaud rate (Default:57600)\n"
         "\t-n num_addr\tnumber of active addresses on iPM\n"
         "\t-# addr,procqueries,port\n"
         "\t\t\t  - addr is the iPM address; a number 0 to n-1\n"

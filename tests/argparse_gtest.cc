@@ -95,8 +95,15 @@ TEST_F(ArgTest, SetGetRecordPeriod)
 TEST_F(ArgTest, SetGetBaudRate)
 {
     // baud rate
+    _args.setBaud("57600");
+    EXPECT_EQ(atoi(_args._baudRate), 57600);
+
     _args.setBaud("115200");
     EXPECT_EQ(atoi(_args._baudRate), 115200);
+
+    // invalid baud rate
+    _args.setBaud("9999");
+    EXPECT_EQ(atoi(_args._baudRate), 9999);
 }
 
 TEST_F(ArgTest, SetGetNumAddr)

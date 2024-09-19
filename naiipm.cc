@@ -212,7 +212,7 @@ int naiipm::open_port()
         port_settings.c_cflag |= CLOCAL; // turn on 12
         if (cfsetspeed(&port_settings, get_baud()) == -1)
         {
-            std::cout << "Failed to set baud rate to 115200" << std::endl;
+            std::cout << "Failed to set baud rate to " << get_baud() << std::endl;
         }
 
         // |= turns on; &= ~ turns off
@@ -246,6 +246,8 @@ uint_fast32_t naiipm::get_baud()
     switch (atoi(args.BaudRate())) {
         case 115200:
             return B115200;
+        case 57600:
+            return B57600;
         default:
             std::cout << "Unknown baud rate " << args.BaudRate() <<
                 "If rate is valid please update get_baud() function"
