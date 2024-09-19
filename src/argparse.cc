@@ -209,7 +209,7 @@ void ipmArgparse::process(int argc, char *argv[])
 void ipmArgparse::configureSerialPort()
 {
 #ifdef __linux__
-    if ((geteuid() == 0) {  // Running as root
+    if ((geteuid() == 0)) {  // Running as root
         if (not ioperm(0x1E9, 3, 1)) {  // serial port not configured
             std::cout << "Configuring serial port... " << std::endl;
             outb(0x00, 0x1E9);  // Here order is DATA, ADDRESS, but at command

@@ -5,6 +5,11 @@
 
 #include <iostream>
 #include <unistd.h>
+#include <algorithm>
+#ifdef __linux__
+    #include <sys/io.h>
+#endif
+#include <string.h>
 
 #include "cmd.h"
 
@@ -16,7 +21,6 @@ extern ipmCmd commands;
 class ipmArgparse
 {
     public:
-
         ipmArgparse();
         ~ipmArgparse();
 
