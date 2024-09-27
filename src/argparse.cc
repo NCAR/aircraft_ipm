@@ -184,6 +184,13 @@ void ipmArgparse::process(int argc, char *argv[])
         errflag++;
     }
 
+    // If not in interactive mode, default to hex data for UDP packets
+    if (not Interactive())
+    {
+        setScaleFlag(0);  // Turn off scaling
+    }
+
+    // On error, print the usage statement and exit
     if (errflag or (geteuid() != 0 and
         not i and (not nopt or not m or not r or not n)))
     {
