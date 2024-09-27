@@ -326,7 +326,7 @@ bool naiipm::setActiveAddress(int fd, int addr)
 // Set the recordPeriod per measureRate so can call RECORD only every
 // recordFreq times that MEASURE / STATUS are called.
 // measureRate is in hz; recordPeriod in minutes
-// So if measureRate is 1 and recordPeriod is min, only send RECORD command
+// So if measureRate is 1 and recordPeriod is 10 min, only send RECORD command
 // after send 600 MEASURE/STATUS commands.
 void naiipm::setRecordFreq()
 {
