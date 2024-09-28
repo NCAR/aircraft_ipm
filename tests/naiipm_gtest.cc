@@ -2,6 +2,7 @@
  ** 2024, Copyright University Corporation for Atmospheric Research
  ********************************************************************
 */
+#include <gmock/gmock.h>
 #include <gtest/gtest.h>
 // sytem header includes must be before private public def
 #define private public  // so can test private functions
@@ -9,6 +10,17 @@
 #include "../naiipm.cc"
 #include "../src/argparse.cc"
 #include "../src/cmd.cc"
+
+using ::testing::Return;
+
+class MockNaiipm : public naiipm {
+public:
+    // Define methods to be mocked
+    MOCK_METHOD(bool, send_command, (int fd, std::string msg,
+        std::string msgarg), (override));
+    MOCK_METHOD(bool, setActiveAddress, (int fd, int addr),
+        (override));
+};
 
 class IpmTest : public ::testing::Test {
 private:
@@ -40,6 +52,48 @@ private:
     }
 };
 
+/********************************************************************
+ ** Test send_command function
+ ********************************************************************
+*/
+TEST_F(IpmTest, ipmSendBadCommand)
+{
+    testing::internal::CaptureStdout();
+
+    int fd = 1;  // Set to stdout
+    EXPECT_EQ(ipm.send_command(fd, "BADCOMMAND"), false);
+
+    EXPECT_EQ(testing::internal::GetCapturedStdout(),
+        "Command BADCOMMAND is invalid. Please enter a valid command\n");
+}
+/********************************************************************
+ ** Test clear function (using mock)
+ ********************************************************************
+*/
+ TEST_F(IpmTest, ipmClear)
+{
+    int fd = 1;  // Set to stdout
+    int addr = 2;
+    std::string msg = "VER?";
+    // Instantiate the mock naiipm class
+    MockNaiipm mipm;
+    // Define what the mocked functions will return
+    EXPECT_CALL(mipm, setActiveAddress)
+        .Times(1)
+        .WillRepeatedly(Return(true));
+    EXPECT_CALL(mipm, send_command)
+        .Times(1)
+        .WillRepeatedly(Return(true));
+
+    // Do the test, using the mocked instance, mipm
+    testing::internal::CaptureStdout();
+
+    bool status = mipm.clear(fd, addr);
+    EXPECT_EQ(status, true);
+
+    EXPECT_EQ(testing::internal::GetCapturedStdout(),
+        "Took 0 ADR commands to clear iPM on init\n");
+}
 /********************************************************************
  ** Test setting interactive mode
  ********************************************************************
@@ -157,7 +211,7 @@ TEST_F(IpmTest, ipmParseDataNoScale)
     testing::internal::CaptureStdout();
     ipm.parseData("RECORD?", 0);
     EXPECT_EQ(testing::internal::GetCapturedStdout(),
-        "sending to port 30101 UDP string RECORD,00,02,00000063,0469448b,00000000,00000000,00d1,049b,00d1,049b,0000,0000,0245,0258,0000,0071,001a,0055,0000,0015,1a,71,1a,71,01,01,0604,065a,0604,0653,0000,0018,087c1b13\r\n");
+        "sending to port 30101 UDP string RECORD,00,02,00000063,0469448b,00000000,00000000,00d1,049b,00d1,049b,0000,0000,0245,0258,0000,005e,0000,0055,0000,0015,1a,71,1a,71,01,01,0604,065a,0604,0653,0000,0018,087c1b13\r\n");
 }
 
 TEST_F(IpmTest, ipmParseDataScale)
@@ -186,7 +240,7 @@ TEST_F(IpmTest, ipmParseDataScale)
     testing::internal::CaptureStdout();
     ipm.parseData("RECORD?", 0);
     EXPECT_EQ(testing::internal::GetCapturedStdout(),
-        "sending to port 30101 UDP string RECORD,0,2,99,74007691,0,0,20.90,117.90,20.90,117.90,0.00,0.00,58.10,60.00,0.0000,0.1130,0.0260,0.0850,0.0000,0.0210,2.60,11.30,2.60,11.30,0.10,0.10,154.00,162.60,154.00,161.90,0.00,2.40,142351123\r\n");
+        "sending to port 30101 UDP string RECORD,0,2,99,74007691,0,0,20.90,117.90,20.90,117.90,0.00,0.00,58.10,60.00,0.0000,0.0940,0.0000,0.0850,0.0000,0.0210,2.60,11.30,2.60,11.30,0.10,0.10,154.00,162.60,154.00,161.90,0.00,2.40,142351123\r\n");
 
     ipm.close_udp(atoi(args.Address()));
 }
