@@ -102,7 +102,7 @@ class IpmEmulator():
         # Establish serial connection to client
         self.sport = serial.Serial(
             port=device,
-            baudrate=115200,
+            baudrate=57600,
             timeout=1,
             parity=serial.PARITY_NONE,
             stopbits=serial.STOPBITS_ONE,

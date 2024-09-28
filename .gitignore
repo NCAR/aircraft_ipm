@@ -1,3 +1,4 @@
 *.o
 ipm_ctrl
+tests/g_test
 .sconsign.dblite

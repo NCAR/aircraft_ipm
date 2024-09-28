@@ -10,10 +10,16 @@ if sys.platform == "darwin":
 else:
     env = Environment(tools=['default'])
 
-env.Append(LIBS = ['gtest_main', 'gtest'])
+env.Append(LIBS = ['gtest_main', 'gtest', 'gmock'])
 
 sources = Split("""
+cmd_gtest.cc
+argparse_gtest.cc
 naiipm_gtest.cc
+measure_gtest.cc
+status_gtest.cc
+record_gtest.cc
+bitresult_gtest.cc
 """)
 
 env.Program(target = 'g_test', source = sources)

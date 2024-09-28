@@ -16,6 +16,12 @@ Export('env')
 sources = Split("""
 ctrl.cc
 naiipm.cc
+src/argparse.cc
+src/cmd.cc
+src/measure.cc
+src/status.cc
+src/record.cc
+src/bitresult.cc
 """)
 
 

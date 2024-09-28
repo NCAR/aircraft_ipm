@@ -1,5 +1,5 @@
 /********************************************************************
- ** 2023, Copyright University Corporation for Atmospheric Research
+ ** 2024, Copyright University Corporation for Atmospheric Research
  ********************************************************************
 */
 
@@ -9,29 +9,25 @@
 #include <bitset>
 #include <cstdio>
 #include <regex>
+#ifdef __linux__
+    #include <sys/io.h>
+#endif
 
 #include "naiipm.h"
+#include "src/cmd.h"
+#include "src/measure.h"
+#include "src/status.h"
+#include "src/record.h"
+#include "src/bitresult.h"
 
-naiipm::naiipm():_interactive(false)
+ipmArgparse args;
+
+naiipm::naiipm()
 {
+
     // unit conversions
     _deci = 0.1;
     _milli = 0.001;
-
-    // Map message to expected response
-    _ipm_commands =
-    {
-        { "OFF",        "OK\n"},       // Turn Device OFF
-        { "RESET",      "OK\n"},       // Turn Device ON (reset)
-        { "SERNO?",     "^[0-9]{6}\n$"}, // Query Serial number (which changes)
-        { "VER?",       "VER A022(L) 2018-11-13\n"}, // Query Firmware Ver
-        { "TEST",       "OK\n"},       // Execute build-in self test
-        { "BITRESULT?", "24\n"},       // Query self test result
-        { "ADR",        ""},           // Device Address Selection
-        { "MEASURE?",   "34\n"},       // Device Measurement
-        { "STATUS?",    "12\n"},       // Device Status
-        { "RECORD?",    "68\n"},       // Device Statistics
-    };
 
     // Initialize the binary data map
     _ipm_data["BITRESULT?"] = _bitdata;   // Query self test result
@@ -42,23 +38,47 @@ naiipm::naiipm():_interactive(false)
     _recordCount = 0;
     _badData = 0;
 
-    // Set defaults
-    setScaleFlag(1);  // turn on scaling by default
-    const char *baud = "115200";
-    setBaud(baud);
-    const char *device = "/dev/ttyS0";
-    setPort(device);
-    const char *naddr = "1";  // one address by default
-    setNumAddr(naddr);
-    const char *undefAddr = "-1";
-    setAddress(undefAddr);
-    setCmd("");
-
-    generateCRCTable();
 }
 
 naiipm::~naiipm()
 {
+}
+
+// When installed on the GV (as opposed to in the lab), on power up
+// the iPM frequently comes up in a hung state (returns nothing in
+// response to sent commands). The working theory is that there is some
+// junk on the port that is corrupting commands being sent. Attempt to
+// clear this by repeatedly sending the ADR and VER? commands up to 10
+// times.
+bool naiipm::clear(int fd, int addr)
+{
+    bool status = true;
+    std::string msg;
+
+    // Set silent so don't print VER output when clearing.
+    args.setSilent(true);
+
+    for (int j=0; j < 10; j++)
+    {
+        // ADR should return nothing so can send it to gather junk on line
+        status = setActiveAddress(fd, addr);
+
+        // Query Firmware Version
+        msg = "VER?";
+        if((status = send_command(fd, msg))) {  // success so stop iterating
+            std::cout << "Took " << j << " ADR commands to clear iPM on" <<
+                " init" << std::endl;
+            break;
+        }
+
+        // Wait half a second and try again
+        usleep(500000);  // 0.5 seconds
+    }
+
+    // Turn output back on
+    args.setSilent(false);
+
+    return status;
 }
 
 //Initialize the iPM device. Returns a verified list of device addresses
@@ -70,43 +90,28 @@ bool naiipm::init(int fd)
     flush(fd);
 
     // Verify device existence at all addresses
-    std::cout << "This ipm should have " << numAddr() << " active address(es)"
+    std::cout << "This ipm should have " << args.numAddr() << " active address(es)"
         << std::endl;
-    for (int i=0; i < numAddr(); i++)
+    for (int i=0; i < args.numAddr(); i++)
     {
         std::string msg;
-        std::cout << "Info for address " << i << " is " << addr(i) << ","
-            << procqueries(i) << "," << addrport(i)
+        std::cout << "Info for address " << i << " is " << args.Addr(i) << ","
+            << args.Procqueries(i) << "," << args.Addrport(i)
             << std::endl;
 
-	// When installed on the GV (as opposed to in the lab), on power up
-	// the iPM frequently comes up in a hung state (returns nothing in
-	// response to sent commands. The working theory is that there is some
-	// junk on the port that is corrupting commands being sent. Attempt to
-	// clear this by repeatedly sending the ADR and VER? commands up to 10
-	// times.
-	bool status;
-	for (int j=0; j < 10; j++)
-	{
-            status = setActiveAddress(fd, addr(i));
-
-            // Query Firmware Version
-            msg = "VER?";
-            if((status = send_command(fd, msg))) {  // success so stop iterating
-		std::cout << "Took " << i << " ADR commands to clear iPM on" <<
-		    " init" << std::endl;
-	        break;
-	    }
-
-	    // Wait half a second and try again
-            usleep(500000);  // 0.5 seconds
-	}
+        bool status;
+        status = setActiveAddress(fd, args.Addr(i));
         if(not status)
         {
-            std::cout << "Unable to set active address to " << addr(i) <<
-                ". Skipping adress " << addr(i) << "for this iteration" <<
+            std::cout << "Unable to set active address to " << args.Addr(i) <<
+                ". Skipping address " << args.Addr(i) << "for this iteration" <<
                 std::endl;
             continue;
+        }
+
+        status = clear(fd, args.Addr(i));
+        if (not status) {
+            std::cout << "Unable to clear device" << std::endl;
         }
 
         // Turn Device OFF, wait > 100ms then turn ON to reset state
@@ -139,7 +144,7 @@ bool naiipm::init(int fd)
         parseData(msg, i);
     }
 
-    if (_numaddr == 0)
+    if (args.numAddr() == 0)
     {
         // if setting all active addresses fails on init, wait 5s and close
         // program so nidas can restart it.
@@ -156,28 +161,28 @@ bool naiipm::init(int fd)
 // i is index of addrinfo string, not actual address to be removed
 void naiipm::rmAddr(int i)
 {
-    std::cout << "Removing address " << addr(i) << " from active address list"
-        << std::endl;
-    for (int j=i; j<_numaddr; j++) {
-        _addrinfo[j] = _addrinfo[j+1];
-        _addr[j] = _addr[j+1];
-        _procqueries[j] = _procqueries[j+1];
-        _addrport[j] = _addrport[j+1];
+    std::cout << "Removing address " << args.Addr(i) <<
+        " from active address list" << std::endl;
+    for (int j=i; j<args.numAddr(); j++) {
+        args.updateAddrInfo(j, args.addrInfo(j+1));
+        args.updateAddr(j, args.Addr(j+1));
+        args.updateProcqueries(j, args.Procqueries(j+1));
+        args.updateAddrPort(j, args.Addrport(j+1));
     }
-    _numaddr =  _numaddr - 1;
+    args.updateNumAddr(args.numAddr() - 1);
 }
 
 // Establish connection to iPM
-int naiipm::open_port(const char *port)
+int naiipm::open_port()
 {
     int fd; // file description for the serial port
     struct termios port_settings; // structure to store the port settings in
 
-    fd = open(Port(), O_RDWR | O_NOCTTY | O_NONBLOCK); // read/write
+    fd = open(args.Device(), O_RDWR | O_NOCTTY | O_NONBLOCK); // read/write
 
     if (fd == -1) // if open is unsuccessful
     {
-        std::cout << "open_port: Unable to open " << port << std::endl;
+        std::cout << "open_port: Unable to open " << args.Device() << std::endl;
         exit(1);
     }
     else
@@ -185,7 +190,7 @@ int naiipm::open_port(const char *port)
         // Confirm we are pointing to a serial device
         if (!isatty(fd))
         {
-            std::cout << port << " is not a serial device" << std::endl;
+            std::cout << args.Device() << " is not a serial device" << std::endl;
             close_port(fd);
             exit(1);
         }
@@ -207,7 +212,7 @@ int naiipm::open_port(const char *port)
         port_settings.c_cflag |= CLOCAL; // turn on 12
         if (cfsetspeed(&port_settings, get_baud()) == -1)
         {
-            std::cout << "Failed to set baud rate to 115200" << std::endl;
+            std::cout << "Failed to set baud rate to " << get_baud() << std::endl;
         }
 
         // |= turns on; &= ~ turns off
@@ -225,9 +230,10 @@ int naiipm::open_port(const char *port)
             std::cout << "Failed to set serial attributes" << std::endl;
         }
 
-        if (Verbose())
+        if (args.Verbose())
         {
-            std::cout << "Port " << port << " is open." << std::endl;
+            std::cout << "Port for device " << args.Device() << " is open."
+                << std::endl;
         }
     }
 
@@ -237,12 +243,15 @@ int naiipm::open_port(const char *port)
 // Convert baud rate to value required by cfsetspeed command
 uint_fast32_t naiipm::get_baud()
 {
-    switch (atoi(_baudRate)) {
+    switch (atoi(args.BaudRate())) {
         case 115200:
             return B115200;
+        case 57600:
+            return B57600;
         default:
-            std::cout << "Unknown baud rate " << _baudRate << "If rate is valid"
-                " please update get_baud() function" << std::endl;
+            std::cout << "Unknown baud rate " << args.BaudRate() <<
+                "If rate is valid please update get_baud() function"
+                << std::endl;
             exit(1);
     }
 }
@@ -256,7 +265,7 @@ void naiipm::close_port(int fd)
 // Each address needs it's own socket so it can send over it's own port.
 void naiipm::open_udp(const char *ip)
 {
-    for (int i=0; i<numAddr(); i++)
+    for (int i=0; i<args.numAddr(); i++)
     {
         //  AF_INET for IPv4/ AF_INET6 for IPv6
         //  SOCK_STREAM for TCP / SOCK_DGRAM for UDP
@@ -269,7 +278,7 @@ void naiipm::open_udp(const char *ip)
         }
         memset(&_servaddr[i], 0, sizeof(_servaddr[i]));
         _servaddr[i].sin_family = AF_INET;
-        _servaddr[i].sin_port = htons(addrport(i));
+        _servaddr[i].sin_port = htons(args.Addrport(i));
         _servaddr[i].sin_addr.s_addr = inet_addr(ip);
     }
 
@@ -278,13 +287,14 @@ void naiipm::open_udp(const char *ip)
 // Send a UDP message to nidas
 void naiipm::send_udp(const char *buf, int i)
 {
-    std::cout << "sending to port " << addrport(i) << " UDP string " << buf;
+    std::cout << "sending to port " << args.Addrport(i) << " UDP string "
+        << buf;  // string already ends in /r/n so don't add std::endl here.
     if (sendto(_sock[i], (const char *)buf, strlen(buf), 0,
             (const struct sockaddr *) &_servaddr[i], sizeof(_servaddr[i])) == -1)
     {
         std::cout << "Sending packet to nidas returned error " << errno
             << std::endl;
-	exit(1);
+        exit(1);
     }
 }
 
@@ -293,52 +303,13 @@ void naiipm::close_udp(int adr)
 {
     if (adr == -1)
     {
-        for (int i=0; i<numAddr(); i++)
+        for (int i=0; i<args.numAddr(); i++)
         {
             close(_sock[i]);
         }
     } else {
         close(_sock[adr]);
     }
-}
-
-// Parse the addrInfo block from the command line
-// Block contains addr,procqueries,port
-bool naiipm::parse_addrInfo(int i)
-{
-    char *addrinfo = addrInfo(i);
-    // Validate address info block with simple comma count
-    std::string s = (std::string)addrinfo;
-    if (std::count(s.begin(), s.end(), ',') != 2)
-    {
-        return false;
-    }
-    if (Verbose())
-    {
-        std::cout << "Parsing info block " << addrinfo << std::endl;
-    }
-    char *ptr = strtok(addrinfo, ",");
-    setAddr(i, ptr);
-    if (Verbose())
-    {
-        std::cout << "addr: " << addr(i) << std::endl;
-    }
-
-    ptr = strtok(NULL, ",");
-    setProcqueries(i, ptr);
-    if (Verbose())
-    {
-        std::cout << "procqueries: " << procqueries(i) << std::endl;
-    }
-
-    ptr = strtok(NULL, ",");
-    setAddrPort(i, ptr);
-    if (Verbose())
-    {
-        std::cout << "addrport: " << addrport(i) << std::endl;
-    }
-
-    return true;
 }
 
 // Set active address
@@ -355,11 +326,11 @@ bool naiipm::setActiveAddress(int fd, int addr)
 // Set the recordPeriod per measureRate so can call RECORD only every
 // recordFreq times that MEASURE / STATUS are called.
 // measureRate is in hz; recordPeriod in minutes
-// So if measureRate is 1 and recordPeriod is min, only send RECORD command
+// So if measureRate is 1 and recordPeriod is 10 min, only send RECORD command
 // after send 600 MEASURE/STATUS commands.
 void naiipm::setRecordFreq()
 {
-     _recordFreq = (int)(atoi(_recordPeriod)*60.0) * atoi(_measureRate);
+    _recordFreq = (int)(atoi(args.recordPeriod())*60.0) * atoi(args.measureRate());
 }
 
 
@@ -370,7 +341,7 @@ bool naiipm::loop(int fd)
 
     _recordCount++;
 
-    for (int i=0; i < numAddr(); i++)
+    for (int i=0; i < args.numAddr(); i++)
     {
 
         // ‘procqueries’ is an integer representation of 3-bit Boolean
@@ -379,15 +350,15 @@ bool naiipm::loop(int fd)
         // file.
         //     d’3 (b’011) indicates that MEASURE+STATUS are processed.
         //     d’5 (b’101) indicates that RECORD+STATUS are processed.
-        int procq = procqueries(i);
+        int procq = args.Procqueries(i);
         std::bitset<4> x('\0' + procq);
-        if (Verbose())
+        if (args.Verbose())
         {
             std::cout << ": [" << procq << "] " << '\0' + procq << " : " << x
                 << std::endl;
         }
 
-        if (setActiveAddress(fd, addr(i)))
+        if (setActiveAddress(fd, args.Addr(i)))
         {
             // Per software requirements, MEASURE? Is queried first, followed
             // by STATUS?, followed by RECORD?
@@ -433,7 +404,7 @@ void naiipm::sleep()
 {
     // TBD: Will likely need to adjust this when the iPM is mounted on the
     // aircraft.
-    _sleeptime = ((1000000 / atoi(_measureRate)) - 200000);  // usec
+    _sleeptime = ((1000000 / atoi(args.measureRate())) - 200000);  // usec
     usleep(_sleeptime);
 }
 
@@ -452,7 +423,7 @@ void naiipm::get_response(int fd, int len, bool bin)
     int ret;
     fd_set set;
     buffer[0] = '\0';
-    if (Verbose())
+    if (args.Verbose())
     {
         std::cout << "Expected response length " << len << std::endl;
     }
@@ -467,7 +438,7 @@ void naiipm::get_response(int fd, int len, bool bin)
         // During operation, the iPM timeout should be 100ms. When developing
         // using the Python emulator, this is too short, so add a second.
         int tout;
-        if (Emulate())
+        if (args.Emulate())
         {
             tout = 1;  // Add a second to timeout when developing
         } else
@@ -502,9 +473,17 @@ void naiipm::get_response(int fd, int len, bool bin)
         {
             std::bitset<8> x(c);
             unsigned int i = (unsigned char)c;
-            if (Verbose())
+            if (args.Verbose())
             {
-              std::cout << n+1 << ": [" << c << "] " << std::dec << i << ",";
+              // If c is not a printable character, for printing purposes
+              // replace it with a null string terminator"
+              char ch = c;
+              if (not std::isprint(static_cast<unsigned char>(c))) {
+                  ch = '\0';
+              } else {
+                  ch = c;
+              }
+              std::cout << n+1 << ": [" << ch << "] " << std::dec << i << ",";
               std::cout << std::hex << i << " : " << x << std::dec << std::endl;
             }
             buffer[n] = c;
@@ -576,10 +555,12 @@ void naiipm::trackBadData()
     }
 }
 // send a single command entered on the command line
-void naiipm::singleCommand(int fd, std::string cmd, int addr)
+void naiipm::singleCommand(int fd)
 {
+    int addr = atoi(args.Address());
     setActiveAddress(fd, addr);
-    if (Verbose())
+    std::string cmd = args.Cmd();
+    if (args.Verbose())
     {
         std::cout << "Sending command " << cmd << std::endl;
     }
@@ -591,18 +572,18 @@ void naiipm::singleCommand(int fd, std::string cmd, int addr)
 bool naiipm::send_command(int fd, std::string msg, std::string msgarg)
 {
     // Confirm command is in list of acceptable command
-    if (not verify(msg)) {return false;}
+    if (not commands.verify(msg)) {return false;}
 
-    if (Verbose())
+    if (args.Verbose())
     {
         std::cout << "Got message " << msg << std::endl;
     }
 
     // Find expected response for this message
-    auto response = _ipm_commands.find(msg);
+    auto response = commands.response(msg);
     std::string expected_response = response->second;
 
-    if (Verbose())
+    if (args.Verbose())
     {
         std::cout << "Expect response " << expected_response << std::endl;
     }
@@ -613,7 +594,7 @@ bool naiipm::send_command(int fd, std::string msg, std::string msgarg)
         msg.append(' ' + msgarg);
     }
     std::string sendmsg = msg + "\n";  // Add linefeed to end of command
-    if (Verbose())
+    if (args.Verbose())
     {
         std::cout << "Sending message " << sendmsg << std::endl;
         std::cout << "of length " << sendmsg.length() << std::endl;
@@ -623,7 +604,7 @@ bool naiipm::send_command(int fd, std::string msg, std::string msgarg)
     {
         std::cout << errno << std::endl;
     }
-    if (Verbose())
+    if (args.Verbose())
     {
         std::cout << "Write completed" << std::endl;
     }
@@ -635,7 +616,7 @@ bool naiipm::send_command(int fd, std::string msg, std::string msgarg)
         // 7.
         // Get response from ipm
         get_response(fd, 7, false);
-        if (Verbose())
+        if (args.Verbose())
         {
             std::cout << "Received " << buffer << std::endl;
         }
@@ -647,13 +628,18 @@ bool naiipm::send_command(int fd, std::string msg, std::string msgarg)
             std::cout << "Device command " << msg << " did not return "
                 << "expected response " << expected_response <<  std::endl;
             return false;  // command failed
+        } else {
+            if (args.Interactive())
+            {
+                std::cout << buffer << std::endl;
+            }
         }
     }
     else
     {
         // Get response from ipm
         get_response(fd, int(expected_response.length()), false);
-        if (Verbose())
+        if (args.Verbose())
         {
             std::cout << "Received " << buffer << std::endl;
         }
@@ -665,6 +651,11 @@ bool naiipm::send_command(int fd, std::string msg, std::string msgarg)
             std::cout << "Device command " << msg << " did not return "
                 << "expected response " << expected_response << std::endl;
             return false;  // command failed
+        } else {
+            if (msg == "VER?" && args.Interactive() && not args.Silent())
+            {
+                std::cout << buffer << std::endl;
+            }
         }
     }
 
@@ -674,7 +665,7 @@ bool naiipm::send_command(int fd, std::string msg, std::string msgarg)
     if (_ipm_data.find(msg) != _ipm_data.end()) // cmd returns data
     {
         int binlen = std::stoi(buffer);
-        if (Verbose())
+        if (args.Verbose())
         {
             std::cout << "Now get " << binlen << " bytes" << std::endl;
         }
@@ -696,22 +687,22 @@ bool naiipm::setInteractiveMode(int fd)
     // If giving address and query on command line, ensure both exist
     // and are valid;
     // got -a but not -c
-    if (atoi(Address()) != -1 and strcmp(Cmd(),"") == 0)
+    if (atoi(args.Address()) != -1 and strcmp(args.Cmd(),"") == 0)
     {
-        verify(Cmd());
+        commands.verify(args.Cmd());
         return false;
     }
     // got -c but not -a
-    if (atoi(Address()) == -1 and strcmp(Cmd(),"") != 0)
+    if (atoi(args.Address()) == -1 and strcmp(args.Cmd(),"") != 0)
     {
         std::cout << "Setting default address of 0" << std::endl;
-        setAddress("0");
+        args.setAddress("0");
         return true;
     }
 
     // iPM command (-c) and address (-a) both given on command line
     // so send query to iPM
-    if (atoi(Address()) != -1 and strcmp(Cmd(),"") != 0)
+    if (atoi(args.Address()) != -1 and strcmp(args.Cmd(),"") != 0)
     {
         return true;
     }
@@ -720,7 +711,7 @@ bool naiipm::setInteractiveMode(int fd)
     bool status = true;
     while (status == true)
     {
-        printMenu();
+        commands.printMenu();
         status = readInput(fd);
     }
 
@@ -737,38 +728,13 @@ void naiipm::flush(int fd)
 
 }
 
-// List use options in interactive mode
-void naiipm::printMenu()
-{
-    std::cout << "=========================================" << std::endl;
-    std::cout << "Type one of the following iPM commands or" << std::endl;
-    std::cout << "enter 'q' to quit" << std::endl;
-    std::cout << "=========================================" << std::endl;
-    for (auto msg : _ipm_commands) {
-        std::cout << msg.first << std::endl;
-    }
-}
-
-bool naiipm::verify(std::string cmd)
-{
-    // Confirm command is in list of acceptable command
-    if (not _ipm_commands.count(cmd))
-    {
-        std::cout << "Command " << cmd << " is invalid. Please enter a " <<
-            "valid command" << std::endl;
-        return false;
-    } else {
-        return true;
-    }
-}
-
 bool naiipm::readInput(int fd)
 {
     std::string cmd = "";
 
     // Request user input
     std::cin >> (cmd);
-    if (Verbose())
+    if (args.Verbose())
     {
         std::cout << "User requested " << cmd << std::endl;
     }
@@ -776,7 +742,7 @@ bool naiipm::readInput(int fd)
     // Catch exit request
     if (cmd.compare("q") == 0)
     {
-        if (Verbose())
+        if (args.Verbose())
         {
             std::cout << "Exiting..." << std::endl;
         }
@@ -785,7 +751,7 @@ bool naiipm::readInput(int fd)
 
     // Confirm command is in list of acceptable command
     // If it is not, ask user to enter another command
-    if (not verify(cmd)) {return true;}
+    if (not commands.verify(cmd)) {return true;}
 
     // If command is valid, send to ipm
     const char *cmdInput = cmd.c_str();
@@ -797,6 +763,7 @@ bool naiipm::readInput(int fd)
             << std::endl;
         std::cin >> (addr);
         std::cout << "User requested " << cmd << " " << addr << std::endl;
+        clear(fd, atoi(addr.c_str()));
         if (not send_command(fd, (char *)cmdInput, addr)) { return false; }
     } else {
         if (not send_command(fd, (char *)cmdInput)) { return false; }
@@ -819,11 +786,12 @@ void naiipm::parse_binary(std::string cmd)
 
 void naiipm::parseData(std::string cmd, int adr)
 {
-    if (Verbose())
+    if (args.Verbose())
     {
         std::cout << '{' << cmd << '}' << std::endl;
-        std::cout << "In parseData: Info for address " << adr << " is " << addr(adr) << ","
-            << procqueries(adr) << "," << addrport(adr) << std::endl;
+        std::cout << "In parseData: Info for address " << adr << " is " <<
+            args.Addr(adr) << "," << args.Procqueries(adr) << "," <<
+            args.Addrport(adr) << std::endl;
     }
     // retrieve binary data
     char* data = getData(cmd); // data content
@@ -836,125 +804,53 @@ void naiipm::parseData(std::string cmd, int adr)
 
     // parse data
     if (cmd == "BITRESULT?") {
-        parseBitresult(sp);
+        ipmBitresult _bitresult;
+        _bitresult.parse(sp);
+        _bitresult.createUDP(buffer, args.scaleflag());
+
+        if (args.Verbose())
+        {
+            std::cout << "iPM temperature (C) = "
+                << _bitresult.getTemperature() << std::endl;
+        }
+
     }
 
     if (cmd == "RECORD?") {
-        parseRecord(cp, sp, lp);
-        // Compare CRC to Reversed 0xEDB88320 at
-        // https://www.scadacore.com/tools/programming-calculators/online-checksum-calculator/
-        // My crc calculation here match the online tool, but the CRC returned
-        // by the iPM does not. I tried both including and excluding the
-        // response length in the CRC but cannot match the returned value.
-        // Leaving the code here so that this can be investigated more later of
-        // desired.
-        // Print a hex line of data suitable for copy/paste into the above
-        // online calculator.
-        /* for (int j=0;j<64;j++)
-        {
-             char c = cp[j];
-             unsigned int i = (unsigned char)c;
-             std::cout << std::setfill ('0') << std::setw(2) << std::hex << i;
-        }
-        std::cout << std::dec << std::endl; */
+        ipmRecord _record;
+        _record.parse(cp, sp, lp);
 
-        // Print out the CRC calculated here and the CRC from the data in hex
-        // so can easily compare to output from online calculator.
-        uint32_t crc = calculateCRC32(&up[0], 64);
-        //std::cout << std::hex << crc << std::dec << " : calculated CRC "
-        //    << std::endl;
-        //std::cout << std::hex << record.CRC << std::dec << " : CRC from iPM"
-        //    << std::endl
+        // CRC validation doesn't currently work. See notes in src/record.cc
+        // Leaving the code here so that this can be investigated more later
+        // if desired.
+        uint32_t crc = _record.calculateCRC32(&up[0], 64);
+        //_record.checkCRC(cp, crc);
         // If CRC from the data and calculatedCRC don't match, increment bad
         // data counter:
         // trackBadData();
 
-        if (Verbose())
+        if (args.Verbose())
         {
-            std::cout << record.TIME/60000 << " minutes since power-up"
-                << std::endl;
+            std::cout << _record.getTimeSincePowerup()
+                << " minutes since power-up" << std::endl;
         }
-        if (scaleflag() >= 1) {
-            snprintf(buffer, 255, "RECORD,%u,%u,%u,%u,%u,%u,%.2f,%.2f,%.2f,"
-                "%.2f,%.2f,%.2f,%.2f,%.2f,%.4f,%.4f,%.4f,%.4f,%.4f,%.4f,%.2f,"
-                "%.2f,%.2f,%.2f,%.2f,%.2f,%.2f,%.2f,%.2f,%.2f,%.2f,%.2f,"
-                "%u\r\n",
-                record.EVTYPE, record.OPSTATE, record.POWERCNT,
-                record.TIME, record.TFLAG, record.CFLAG,
-                record.VRMSMINA * _deci, record.VRMSMAXA * _deci,
-                record.VRMSMINB * _deci, record.VRMSMAXB * _deci,
-                record.VRMSMINC * _deci, record.VRMSMAXC * _deci,
-                record.FREQMIN * _deci, record.FREQMAX * _deci,
-                record.VDCMINA * _milli, record.THDMAXA * _milli,
-                record.THDMINB * _milli, record.VDCMAXB * _milli,
-                record.VDCMINC * _milli, record.VDCMAXC * _milli,
-                record.THDMINA * _deci, record.THDMAXA * _deci,
-                record.THDMINB * _deci, record.THDMAXB * _deci,
-                record.THDMINC * _deci, record.THDMAXC * _deci,
-                record.VPKMINA * _deci, record.VPKMAXA * _deci,
-                record.VPKMINB * _deci, record.VPKMAXB * _deci,
-                record.VPKMINC * _deci, record.VPKMAXC * _deci,
-                record.CRC);
-        } else {
-            snprintf(buffer, 255, "RECORD,%02x,%02x,%08x,%08x,%08x,%08x,%04x,"
-                "%04x,%04x,%04x,%04x,%04x,%04x,%04x,%04x,%04x,%04x,%04x,%04x,"
-                "%04x,%02x,%02x,%02x,%02x,%02x,%02x,%04x,%04x,%04x,%04x,%04x,"
-                "%04x,%08x\r\n",
-                record.EVTYPE, record.OPSTATE, record.POWERCNT, record.TIME,
-                record.TFLAG, record.CFLAG, record.VRMSMINA, record.VRMSMAXA,
-                record.VRMSMINB, record.VRMSMAXB, record.VRMSMINC,
-                record.VRMSMAXC, record.FREQMIN, record.FREQMAX,
-                record.VDCMINA, record.THDMAXA, record.THDMINB, record.VDCMAXB,
-                record.VDCMINC, record.VDCMAXC, record.THDMINA, record.THDMAXA,
-                record.THDMINB, record.THDMAXB, record.THDMINC, record.THDMAXC,
-                record.VPKMINA, record.VPKMAXA, record.VPKMINB, record.VPKMAXB,
-                record.VPKMINC, record.VPKMAXC, record.CRC);
-        }
+
+        _record.createUDP(buffer, args.scaleflag());
     }
 
     if (cmd == "MEASURE?") {
-        parseMeasure(cp, sp);
-        if (scaleflag() >= 1) {
-            snprintf(buffer, 255, "MEASURE,%.2f,%.2f,%.2f,%.2f,%.2f,%.2f,%.2f,"
-                 "%.2f,%.4f,%.4f,%.4f,%.2f,%.2f,%.2f,%.2f,%.2f,%.2f,%u\r\n",
-                 measure.FREQ * _deci, measure.TEMP * _deci,
-                 measure.VRMSA * _deci, measure.VRMSB * _deci,
-                 measure.VRMSC * _deci, measure.VPKA * _deci,
-                 measure.VPKB * _deci, measure.VPKC * _deci,
-                 measure.VDCA * _milli, measure.VDCB * _milli,
-                 measure.VDCC * _milli, measure.PHA * _deci,
-                 measure.PHB * _deci, measure.PHC * _deci,
-                 measure.THDA * _deci, measure.THDB * _deci,
-                 measure.THDC * _deci, measure.POWEROK);
-        } else {
-            snprintf(buffer, 255, "MEASURE,%04x,%04x,%04x,%04x,%04x,%04x,%04x,"
-                 "%04x,%04x,%04x,%04x,%04x,%04x,%04x,%02x,%02x,%02x,%02x\r\n",
-                 measure.FREQ, measure.TEMP,
-                 measure.VRMSA, measure.VRMSB,
-                 measure.VRMSC, measure.VPKA,
-                 measure.VPKB, measure.VPKC,
-                 measure.VDCA, measure.VDCB,
-                 measure.VDCC, measure.PHA,
-                 measure.PHB, measure.PHC,
-                 measure.THDA, measure.THDB,
-                 measure.THDC, measure.POWEROK);
-        }
+        ipmMeasure _measure;
+        _measure.parse(cp, sp);
+        _measure.createUDP(buffer, args.scaleflag());
     }
 
     if (cmd == "STATUS?") {
-        parseStatus(cp, sp);
-        if (scaleflag() >= 1) {
-            snprintf(buffer, 255, "STATUS,%u,%u,%u,%u,%u,%d\r\n",
-                status.OPSTATE, status.POWEROK, status.TRIPFLAGS,
-                status.CAUTIONFLAGS, status.BITSTAT, _badData);
-        } else {
-            snprintf(buffer, 255, "STATUS,%02x,%02x,%04x,%04x,%04x\r\n",
-                status.OPSTATE, status.POWEROK, status.TRIPFLAGS,
-                status.CAUTIONFLAGS, status.BITSTAT);
-        }
+        ipmStatus _status;
+        _status.parse(cp, sp);
+        _status.createUDP(buffer, args.scaleflag(), _badData);
     }
 
-    if (Interactive())
+    if (args.Interactive())
     {
         std::cout << buffer << std::endl;
     } else
@@ -962,139 +858,4 @@ void naiipm::parseData(std::string cmd, int adr)
         send_udp(buffer, adr);
     }
 
-}
-
-void naiipm::parseRecord(uint8_t *cp, uint16_t *sp, uint32_t *lp)
-{
-    record.EVTYPE = cp[0];    // Event Type
-    // Event Type: 0 - Max Interval; 1 - Power Up; 2 - Power Down; 3 - Off;
-    //             4 - Reset; 5 - Trip; 6 - Fail; 7 - Output On; 8 - Output Off
-
-    record.OPSTATE = cp[1];    // Operating State
-    // There is a typo in the programming manual. Power up count should
-    // be 4 bytes and elapsed time should start at byte 6 and be 4 bytes
-    // as coded here.
-    record.POWERCNT = (((long)sp[2]) << 16) | sp[1];  // Power Up Count
-    record.TIME = (((long)sp[4]) << 16) | sp[3]; // Power Up Time (1 ms)
-    record.TFLAG = (((long)sp[6]) << 16) | sp[5];  // Trip Flag
-    record.CFLAG = (((long)sp[8]) << 16) | sp[7];  // Caution Flag
-    record.VRMSMINA = sp[9];   // Phase A Voltage Min (0.1 V rms)
-    record.VRMSMAXA = sp[10];  // Phase A Voltage Max (0.1 V rms)
-    record.VRMSMINB = sp[11];  // Phase B Voltage Min (0.1 V rms)
-    record.VRMSMAXB = sp[12];  // Phase B Voltage Max (0.1 V rms)
-    record.VRMSMINC = sp[13];  // Phase C Voltage Min (0.1 V rms)
-    record.VRMSMAXC = sp[14];  // Phase C Voltage Max (0.1 V rms)
-    record.FREQMIN = sp[15];   // Frequency Min (0.1 Hz)
-    record.FREQMAX = sp[16];   // Frequency Max (0.1 Hz)
-    record.VDCMINA = sp[17];   // Phase A DC Content Min (1 mV)
-    record.VDCMAXA = sp[18];   // Phase A DC Content Max (1 mV)
-    record.VDCMINB = sp[19];   // Phase B DC Content Min (1 mV)
-    record.VDCMAXB = sp[20];   // Phase B DC Content Max (1 mV)
-    record.VDCMINC = sp[21];   // Phase C DC Content Min (1 mV)
-    record.VDCMAXC = sp[22];   // Phase C DC Content Max (1 mV)
-    record.THDMINA = cp[46];   // Phase A Distortion Min (0.1 %)
-    record.THDMAXA = cp[47];   // Phase A Distortion Max (0.1 %)
-    record.THDMINB = cp[48];   // Phase B Distortion Min (0.1 %)
-    record.THDMAXB = cp[49];   // Phase B Distortion Max (0.1 %)
-    record.THDMINC = cp[50];   // Phase C Distortion Min (0.1 %)
-    record.THDMAXC = cp[51];   // Phase C Distortion Max (0.1 %)
-    record.VPKMINA = sp[26];   // Phase A Peak Voltage Min (0.1 V)
-    record.VPKMAXA = sp[27];   // Phase A Peak Voltage Max (0.1 V)
-    record.VPKMINB = sp[28];   // Phase B Peak Voltage Min (0.1 V)
-    record.VPKMAXB = sp[29];   // Phase B Peak Voltage Max (0.1 V)
-    record.VPKMINC = sp[30];   // Phase C Peak Voltage Min (0.1 V)
-    record.VPKMAXC = sp[31];   // Phase C Peak Voltage Max (0.1 V)
-    record.CRC = lp[16];       // CRC-32
-}
-
-void naiipm::parseBitresult(uint16_t *sp)
-{
-    // There is a typo in the programming manual. Byte should start at
-    // zeroC
-    float bitStatus = sp[0];
-    float hREFV = sp[1];  // Half-Ref voltage (4.89mV)
-    float VREFV = sp[2];  // VREF voltage (4.89mV)
-    float FIVEV = sp[3];  // +5V voltage (9.78mV)
-    float FIVEVA = sp[4]; // +5VA voltage (9.78mV)
-    float RDV = sp[5];    // Relay Drive Voltage (53.76mV)
-    // bytes 13-14 and 15-16 are reserved
-    float ITVA = sp[8];   // Phase A input test voltage (4.89mV) - reserved
-    float ITVB = sp[9];   // Phase B input test voltage (4.89mV) - reserved
-    float ITVC = sp[10];  // Phase C input test voltage (4.89mV) - reserved
-    float TEMP = sp[11] * 0.1;  // Temperature (0.1C)
-    if (Verbose())
-    {
-        std::cout << "iPM temperature (C) = " << TEMP << std::endl;
-    }
-}
-
-void naiipm::parseMeasure(uint8_t *cp, uint16_t *sp)
-{
-    // There is a typo in the programming manual. Byte should start at
-    // zero.
-    measure.FREQ = sp[0];   // Frequency (0.1Hz)
-    // bytes 3-4 are reserved
-    measure.TEMP = sp[2];   // Temperature (0.1 C)
-    measure.VRMSA = sp[3];  // Phase A voltage rms (0.1 V)
-    measure.VRMSB = sp[4];  // Phase B voltage rms (0.1 V)
-    measure.VRMSC = sp[5];  // Phase C voltage rms (0.1 V)
-    measure.VPKA = sp[6];   // Phase A voltage peak (0.1 V)
-    measure.VPKB = sp[7];   // Phase B voltage peak (0.1 V)
-    measure.VPKC = sp[8];   // Phase C voltage peak (0.1 V)
-    measure.VDCA = sp[9];   // Phase A DC component (1 mV DC)
-    measure.VDCB = sp[10];  // Phase B DC component (1 mV DC)
-    measure.VDCC = sp[11];  // Phase C DC component (1 mV DC)
-    measure.PHA = sp[12];   // Phase A Phase Angle (0.1 deg) rel. to Phase A
-    measure.PHB = sp[13];   // Phase B Phase Angle (0.1 deg) rel. to Phase B
-    measure.PHC = sp[14];   // Phase C Phase Angle (0.1 deg) rel. to Phase C
-    measure.THDA = cp[30];  // Phase A THD (0.1%)
-    measure.THDB = cp[31];  // Phase B THD (0.1%)
-    measure.THDC = cp[32];  // Phase C THD (0.1%)
-    measure.POWEROK = cp[33];  // PowerOK (1 = power good, 0 = no good)
-}
-
-void naiipm::parseStatus(uint8_t *cp, uint16_t *sp)
-{
-    // There is a typo in the programming manual. Byte should start at
-    // zero.
-    status.OPSTATE = cp[0];    // Operating State
-    // OpState: 0 - Off; 1 = reserved; 2 - reset; 3 - Tripped; 4 - Failed
-    status.POWEROK = cp[1];    // PowerOK (1 - power good; 0 - no good)
-    status.TRIPFLAGS = (((long)sp[2]) << 16) | sp[1];
-    status.CAUTIONFLAGS = (((long)sp[4]) << 16) | sp[3];
-    status.BITSTAT = sp[5];   // bitStatus
-}
-
-void naiipm::generateCRCTable()
-{
-    uint32_t crc, poly;
-    int i, j;
-
-    poly = 0xEDB88320;
-    for (i=0; i < 256; i++)
-    {
-        crc = i;
-        for (j = 8; j > 0; j--)
-        {
-            if (crc & 1)
-                crc = (crc >> 1) ^ poly;
-            else
-                crc >>= 1;
-        }
-        _crcTable[i] = crc;
-    }
-}
-
-uint32_t naiipm::calculateCRC32 (unsigned char *buf, int ByteCount)
-{
-    uint32_t crc;
-    int i, j, ch;
-
-    crc = 0xFFFFFFFF;
-    for (i=0; i < ByteCount; i++)
-    {
-        ch = *buf++;
-        crc = (crc>>8) ^ _crcTable[(crc ^ ch) & 0xFF];
-    }
-    return (crc ^ 0xFFFFFFFF);
 }
