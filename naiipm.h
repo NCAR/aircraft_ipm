@@ -50,7 +50,7 @@ class naiipm
 
         void get_response(int fd, int len, bool bin);
         void flush(int fd);
-        bool send_command(int fd, std::string msg, std::string msgarg = "");
+        virtual bool send_command(int fd, std::string msg, std::string msgarg = "");
         void parse_binary(std::string cmd);
 
         uint_fast32_t get_baud();
@@ -59,7 +59,7 @@ class naiipm
         int _recordFreq;
         long _sleeptime;
 
-        bool setActiveAddress(int fd, int addr);
+        virtual bool setActiveAddress(int fd, int addr);
         void rmAddr(int i);
 
         void setData(std::string cmd, int binlen);
