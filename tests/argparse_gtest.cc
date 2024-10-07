@@ -76,6 +76,9 @@ TEST_F(ArgTest, SetGetIpmDevice)
     // device iPM is connected to
     _args.setDevice("/dev/ttyS0");
     EXPECT_EQ(_args.Device(), "/dev/ttyS0");
+
+    _args.setDevice("/dev/ttyUSB0");
+    EXPECT_EQ(_args.Device(), "/dev/ttyUSB0");
 }
 
 TEST_F(ArgTest, SetGetMeasureRate)

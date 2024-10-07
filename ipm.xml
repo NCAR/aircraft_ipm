@@ -385,7 +385,7 @@
     <dsm name="dsmspare" location="bench" id="49" rserialPort="30002" derivedData="sock::31000" statusAddr="sock::30001">
 
       <sensor ID="NAIiPM" class="raf.UDPiPMSensor" devicename="usock::56773" id="6200" timeout="5">
-          <parameter name="device" type="string" value="/dev/ttyS0"/>
+          <parameter name="device" type="string" value="/dev/ttyUSB0"/>
           <parameter name="measurerate" type="int" value="1"/>
           <parameter name="recordperiod" type="int" value="10"/>
           <parameter name="num_addr" type="int" value="3"/>

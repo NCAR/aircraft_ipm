@@ -33,9 +33,9 @@ int main(int argc, char * argv[])
     std::ofstream logfile(filename);
     auto oldbuf = std::cout.rdbuf( logfile.rdbuf());
 
-    // If in interactive mode, don't log to a file
+    // If in interactive or debug mode, don't log to a file
     for (int i=0; i< argc; ++i) {
-        if (strcmp(argv[i],"-i") == 0) {
+        if ((strcmp(argv[i],"-i") == 0) || (strcmp(argv[i],"-d") == 0)) {
             // go back to writing to stdout
             std::cout << "Start logging" << std::endl;
             std::cout.rdbuf(oldbuf);

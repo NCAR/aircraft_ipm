@@ -55,8 +55,11 @@ bool naiipm::clear(int fd, int addr)
     bool status = true;
     std::string msg;
 
-    // Set silent so don't print VER output when clearing.
-    args.setSilent(true);
+    if (args.Interactive())
+    {
+      // Set silent so don't print VER output when clearing.
+        args.setSilent(true);
+    }
 
     for (int j=0; j < 10; j++)
     {
@@ -75,8 +78,11 @@ bool naiipm::clear(int fd, int addr)
         usleep(500000);  // 0.5 seconds
     }
 
-    // Turn output back on
-    args.setSilent(false);
+    if (args.Interactive())
+    {
+        // Turn output back on
+        args.setSilent(false);
+    }
 
     return status;
 }

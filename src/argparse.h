@@ -84,6 +84,9 @@ class ipmArgparse
         void setEmulate() { _emulate = true; }
         bool Emulate()    { return _emulate; };
 
+        void setDebug() { _debug = true; }
+        bool Debug()    { return _debug; };
+
         void configureSerialPort();
 
         void Usage();
@@ -106,6 +109,7 @@ class ipmArgparse
         bool _verbose;
         int _scaleflag;
         bool _emulate;
+        bool _debug;
 
 };
 

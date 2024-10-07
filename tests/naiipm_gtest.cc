@@ -70,7 +70,7 @@ TEST_F(IpmTest, ipmSendBadCommand)
  ** Test clear function (using mock)
  ********************************************************************
 */
- TEST_F(IpmTest, ipmClear)
+TEST_F(IpmTest, ipmClear)
 {
     int fd = 1;  // Set to stdout
     int addr = 2;

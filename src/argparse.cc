@@ -9,7 +9,7 @@ ipmCmd commands;
 ipmArgparse::ipmArgparse():_interactive(false)
 {
     // Set defaults
-    const char *device = "/dev/ttyS0";
+    const char *device = "/dev/ttyUSB0";
     setDevice(device);
     setScaleFlag(1);  // turn on scaling by default
     const char *baud = "57600";
@@ -29,7 +29,7 @@ void ipmArgparse::Usage()
 {
     std::cout <<
         "\nUsage:\n"
-        "\t-D device\tiPM connection device (Default:/dev/ttyS0)\n"
+        "\t-D device\tiPM connection device (Default:/dev/ttyUSB0)\n"
         "\t-m measurerate\tSTATUS & MEASURE collection rate (hz)\n"
         "\t-r recordperiod\tperiod of RECORD queries (minutes)\n"
         "\t-b baudrate\tbaud rate (Default:57600)\n"
@@ -46,26 +46,28 @@ void ipmArgparse::Usage()
         "\t\t\t  - When in interactive mode only -D and -b are required\n"
         "\t\t\t  - Inclusion of -a and -c will send a single command\n"
         "\t\t\t  and exit.\n"
-        "\t-a \t\tset address (optional)\n"
+        "\t-a \t\tset address (optional; defaults to 0 in interactive mode)n"
         "\t-c \t\tset command (optional)\n"
         "\t-v \t\trun in verbose mode (optional)\n"
         "\t-H \t\trun in hexadecimal output mode, comma-delimited\n"
         "\t\t\t  don't scale vars (optional)\n"
         "\t-e \t\trun with emulator; longer timeout (optional)\n"
+        "\t-d \t\tRun in debug mode - prints to screen rather than logfile\n"
+        "\t\t\t  when in looping (non-interactive) mode (optional)\n"
         "\t-S \t\tConfigure serial port and exit. Must be run as\n"
         "\t\t\t  root\n"
         "\n"
         "Examples:\n"
-        "\t./ipm_ctrl -i -a 2 -D /dev/ttyS0 -c RECORD?\n"
+        "\t./ipm_ctrl -i -a 2 -D /dev/ttyUSB0 -c RECORD?\n"
         "\t    Interactive, Send a single RECORD? query to iPM "
-        "address 2 on\n\t     /dev/ttyS0\n"
-        "\t./ipm_ctrl -i -a 1 -D /dev/ttyS0 -c MEASURE? -H\n"
+        "address 2 on\n\t     /dev/ttyUSB0\n"
+        "\t./ipm_ctrl -i -a 1 -D /dev/ttyUSB0 -c MEASURE? -H\n"
         "\t    Interactive, Send a single MEASURE? query to iPM "
-        "address 1 on \n\t    /dev/ttyS0 and output hex values\n"
+        "address 1 on \n\t    /dev/ttyUSB0 and output hex values\n"
         "\t./ipm_ctrl -i\n"
         "\t    Interactive, Start menu-based control of iPM\n"
         "\t./ipm_ctrl -m 1 -r 10 -n 2 -0 0,5,30101 -1 2,5,30102"
-        " -D /dev/ttyS0\n\t    Launch full application with bus "
+        " -D /dev/ttyUSB0\n\t    Launch full application with bus "
         "identification at two\n\t     addresses, initialization, "
         "periodic data queries and\n\t    transmission to network "
         "IP port.\n\n";
@@ -87,7 +89,7 @@ void ipmArgparse::process(int argc, char *argv[])
 
     // Options between colons require an argument
     // Options after last colon do not.
-    while((opt = getopt(argc, argv, ":D:m:r:b:n:0:1:2:3:4:5:6:7:a:c:ivHeS"))
+    while((opt = getopt(argc, argv, ":D:m:r:b:n:0:1:2:3:4:5:6:7:a:c:ivHedS"))
            != -1)
     {
         nopt++;
@@ -160,6 +162,9 @@ void ipmArgparse::process(int argc, char *argv[])
                 setScaleFlag(0);  // Turn off scaling
             case 'e': // Run in emulator mode
                 setEmulate();
+                break;
+            case 'd': // Run in debug mode
+                setDebug();
                 break;
             case 'S': // Configure serial port
                 configureSerialPort();
